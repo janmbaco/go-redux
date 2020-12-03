@@ -10,9 +10,9 @@ import (
 )
 
 type Actions struct {
-	actionsObject core.ActionsObject
-	Sumar         core.Action
-	Restar        core.Action
+	actionsObject redux.ActionsObject
+	Sumar         redux.Action
+	Restar        redux.Action
 }
 
 func Sumar(state int, payload *int) int {
@@ -34,15 +34,15 @@ func (ro *RestarObject) Restar(state int, payload *int) int {
 func main() {
 	var myActions = &Actions{}
 
-	myActions.actionsObject = core.NewActionsObject(myActions)
+	myActions.actionsObject = redux.NewActionsObject(myActions)
 
-	businessObjectBuilder := core.NewBusinessObjectBuilder(0, myActions.actionsObject)
+	businessObjectBuilder := redux.NewBusinessObjectBuilder(0, myActions.actionsObject)
 
 	businessObjectBuilder.On(myActions.Sumar, Sumar)
 
 	businessObjectBuilder.SetActionsLogicByObject(&RestarObject{})
 
-	myStore := core.NewStore(businessObjectBuilder.GetBusinessObject())
+	myStore := redux.NewStore(businessObjectBuilder.GetBusinessObject())
 
 	wg := sync.WaitGroup{}
 	pass := 1

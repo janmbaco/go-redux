@@ -1,4 +1,4 @@
-package core
+package redux
 
 type BusinessObject struct {
 	ActionsObject ActionsObject

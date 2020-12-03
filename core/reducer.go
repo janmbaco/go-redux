@@ -1,4 +1,4 @@
-package core
+package redux
 
 type ReduceFunc func(state interface{}, action Action) interface{}
 
