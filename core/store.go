@@ -8,11 +8,11 @@ type SubscribeFunc func(newState interface{})
 
 type Store interface {
 	Dispatch(Action)
-	Subscribe(*StateEntity, SubscribeFunc)
+	Subscribe(StateEntity, SubscribeFunc)
 }
 
 type store struct {
-	bo map[*StateEntity]*BusinessObject
+	bo map[StateEntity]*BusinessObject
 }
 
 func NewStore(businessObjects ...*BusinessObject) Store {
@@ -20,7 +20,7 @@ func NewStore(businessObjects ...*BusinessObject) Store {
 		panic("There must be at least one businessObject parameter")
 	}
 	newStore := &store{
-		bo: make(map[*StateEntity]*BusinessObject),
+		bo: make(map[StateEntity]*BusinessObject),
 	}
 
 	for _, bo := range businessObjects {
@@ -43,7 +43,7 @@ func (s *store) Dispatch(action Action) {
 	}
 }
 
-func (s *store) Subscribe(stateEntity *StateEntity, subscribeFunc SubscribeFunc) {
+func (s *store) Subscribe(stateEntity StateEntity, subscribeFunc SubscribeFunc) {
 	errorhandler.CheckNilParameter(map[string]interface{}{"stateEntity": stateEntity, "subscribeFunc": subscribeFunc})
 	if _, ok := s.bo[stateEntity]; !ok {
 		panic("There is no BusinessObject for that StateEntity!")

@@ -1,5 +1,5 @@
 package redux
 
-type StateEntity struct {
-	InitialState interface{}
+type StateEntity interface {
+	GetInitialState() interface{}
 }

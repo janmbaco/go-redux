@@ -9,6 +9,14 @@ import (
 	"github.com/janmbaco/go-redux/core"
 )
 
+type IntState struct {
+	initialState int
+}
+
+func (s *IntState) GetInitialState() interface{} {
+	return s.initialState
+}
+
 type Actions struct {
 	actionsObject redux.ActionsObject
 	Sumar         redux.Action
@@ -37,8 +45,7 @@ func main() {
 
 	myActions.actionsObject = redux.NewActionsObject(myActions)
 
-	var myState = &redux.StateEntity{InitialState: 0}
-
+	var myState = &IntState{initialState: 0}
 	businessObjectBuilder := redux.NewBusinessObjectBuilder(myState, myActions.actionsObject)
 
 	businessObjectBuilder.On(myActions.Sumar, Sumar)
