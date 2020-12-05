@@ -11,18 +11,18 @@ import (
 )
 
 type businessObjectBuilder struct {
-	initialState  interface{}
+	stateEntity   *StateEntity
 	stateManager  StateManager
 	actionsObject ActionsObject
 	blf           map[Action]reflect.Value //business logic funcionality
 }
 
-func NewBusinessObjectBuilder(initialState interface{}, actionsObject ActionsObject) *businessObjectBuilder {
-	errorhandler.CheckNilParameter(map[string]interface{}{"initialState": initialState, "actionsObject": actionsObject})
+func NewBusinessObjectBuilder(stateEntity *StateEntity, actionsObject ActionsObject) *businessObjectBuilder {
+	errorhandler.CheckNilParameter(map[string]interface{}{"stateEntity": stateEntity, "actionsObject": actionsObject})
 
 	return &businessObjectBuilder{
-		initialState:  initialState,
-		stateManager:  NewStateManager(events.NewEventPublisher(), initialState),
+		stateEntity:   stateEntity,
+		stateManager:  NewStateManager(events.NewEventPublisher(), stateEntity),
 		actionsObject: actionsObject,
 		blf:           make(map[Action]reflect.Value)}
 }
@@ -50,7 +50,7 @@ func (builder *businessObjectBuilder) On(action Action, function interface{}) *b
 		panic("The function must be a Func!")
 	}
 
-	if typeOfState := reflect.TypeOf(builder.initialState); functionType.NumIn() != 2 || functionType.NumOut() != 1 || functionType.In(0) != functionType.Out(0) || functionType.In(0) != typeOfState {
+	if typeOfState := reflect.TypeOf(builder.stateEntity.InitialState); functionType.NumIn() != 2 || functionType.NumOut() != 1 || functionType.In(0) != functionType.Out(0) || functionType.In(0) != typeOfState {
 		panic(fmt.Sprintf("The function for action `%v` must to have the contract func(state `%v`, payload *any) `%v`", action.GetName(), typeOfState.Name(), typeOfState.Name()))
 	}
 
@@ -72,7 +72,7 @@ func (builder *businessObjectBuilder) SetActionsLogicByObject(object interface{}
 	for i := 0; i < rt.NumMethod(); i++ {
 		m := rt.Method(i)
 		mt := m.Type
-		if typeOfState := reflect.TypeOf(builder.initialState); mt.NumIn() == 3 && mt.NumOut() == 1 && mt.In(1) == mt.Out(0) && mt.In(1) == typeOfState {
+		if typeOfState := reflect.TypeOf(builder.stateEntity.InitialState); mt.NumIn() == 3 && mt.NumOut() == 1 && mt.In(1) == mt.Out(0) && mt.In(1) == typeOfState {
 			if builder.actionsObject.ContainsByName(m.Name) {
 				action := builder.actionsObject.GetActionByName(m.Name)
 				action.SetType(mt.In(2))
@@ -122,6 +122,7 @@ func (builder *businessObjectBuilder) GetBusinessObject() *BusinessObject {
 	return &BusinessObject{
 		ActionsObject: builder.actionsObject,
 		Reducer:       reducer,
+		StateEnity:    builder.stateEntity,
 		StateManager:  builder.stateManager,
 	}
 }

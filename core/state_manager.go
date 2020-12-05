@@ -21,9 +21,9 @@ type stateManager struct {
 	typ       reflect.Type
 }
 
-func NewStateManager(publisher events.EventPublisher, state interface{}) StateManager {
-	errorhandler.CheckNilParameter(map[string]interface{}{"publisher": publisher, "state": state})
-	return &stateManager{publisher: publisher, state: state, typ: reflect.TypeOf(state)}
+func NewStateManager(publisher events.EventPublisher, stateEntity *StateEntity) StateManager {
+	errorhandler.CheckNilParameter(map[string]interface{}{"publisher": publisher, "stateEntity": stateEntity})
+	return &stateManager{publisher: publisher, state: stateEntity.InitialState, typ: reflect.TypeOf(stateEntity.InitialState)}
 }
 
 func (s *stateManager) GetState() interface{} {

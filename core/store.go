@@ -8,11 +8,11 @@ type SubscribeFunc func(newState interface{})
 
 type Store interface {
 	Dispatch(Action)
-	Subscribe(ActionsObject, SubscribeFunc)
+	Subscribe(*StateEntity, SubscribeFunc)
 }
 
 type store struct {
-	bo map[ActionsObject]*BusinessObject
+	bo map[*StateEntity]*BusinessObject
 }
 
 func NewStore(businessObjects ...*BusinessObject) Store {
@@ -20,14 +20,14 @@ func NewStore(businessObjects ...*BusinessObject) Store {
 		panic("There must be at least one businessObject parameter")
 	}
 	newStore := &store{
-		bo: make(map[ActionsObject]*BusinessObject),
+		bo: make(map[*StateEntity]*BusinessObject),
 	}
 
 	for _, bo := range businessObjects {
-		if _, ko := newStore.bo[bo.ActionsObject]; ko {
-			panic("Cannot add multiple BusinessObject with the same ActionsObject!")
+		if _, ko := newStore.bo[bo.StateEnity]; ko {
+			panic("Cannot add multiple BusinessObject with the same StateEntity!")
 		}
-		newStore.bo[bo.ActionsObject] = bo
+		newStore.bo[bo.StateEnity] = bo
 	}
 
 	return newStore
@@ -43,13 +43,13 @@ func (s *store) Dispatch(action Action) {
 	}
 }
 
-func (s *store) Subscribe(actionsObject ActionsObject, subscribeFunc SubscribeFunc) {
-	errorhandler.CheckNilParameter(map[string]interface{}{"actionsObject": actionsObject, "subscribeFunc": subscribeFunc})
-	if _, ok := s.bo[actionsObject]; !ok {
-		panic("There is no BusinessObject for that ActionsObject!")
+func (s *store) Subscribe(stateEntity *StateEntity, subscribeFunc SubscribeFunc) {
+	errorhandler.CheckNilParameter(map[string]interface{}{"stateEntity": stateEntity, "subscribeFunc": subscribeFunc})
+	if _, ok := s.bo[stateEntity]; !ok {
+		panic("There is no BusinessObject for that StateEntity!")
 	}
 
-	s.bo[actionsObject].StateManager.Subscribe(func() {
-		subscribeFunc(s.bo[actionsObject].StateManager.GetState())
+	s.bo[stateEntity].StateManager.Subscribe(func() {
+		subscribeFunc(s.bo[stateEntity].StateManager.GetState())
 	})
 }

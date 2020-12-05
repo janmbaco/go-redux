@@ -32,11 +32,14 @@ func (ro *RestarObject) Restar(state int, payload *int) int {
 }
 
 func main() {
+
 	var myActions = &Actions{}
 
 	myActions.actionsObject = redux.NewActionsObject(myActions)
 
-	businessObjectBuilder := redux.NewBusinessObjectBuilder(0, myActions.actionsObject)
+	var myState = &redux.StateEntity{InitialState: 0}
+
+	businessObjectBuilder := redux.NewBusinessObjectBuilder(myState, myActions.actionsObject)
 
 	businessObjectBuilder.On(myActions.Sumar, Sumar)
 
@@ -46,7 +49,7 @@ func main() {
 
 	wg := sync.WaitGroup{}
 	pass := 1
-	myStore.Subscribe(myActions.actionsObject, func(newState interface{}) {
+	myStore.Subscribe(myState, func(newState interface{}) {
 		logs.Log.Info(strconv.Itoa(newState.(int)))
 		var expected int
 		switch pass {
@@ -75,7 +78,6 @@ func main() {
 	wg.Add(1)
 	myStore.Dispatch(myActions.Sumar)
 	wg.Add(1)
-
 	a = -7
 	myStore.Dispatch(myActions.Sumar.With(&a))
 	wg.Add(1)
