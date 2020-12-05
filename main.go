@@ -10,7 +10,7 @@ import (
 )
 
 type IntState struct {
-	initialState int
+	initialState *int
 }
 
 func (s *IntState) GetInitialState() interface{} {
@@ -23,20 +23,25 @@ type Actions struct {
 	Restar        redux.Action
 }
 
-func Sumar(state int, payload *int) int {
-	var result int
+func Sumar(state *int, payload *int) *int {
+
 	if payload == nil {
-		result = state + 1
+		*state = *state + 1
 	} else {
-		result = state + *payload
+		*state = *state + *payload
 	}
-	return result
+	return state
 }
 
 type RestarObject struct{}
 
-func (ro *RestarObject) Restar(state int, payload *int) int {
-	return state - *payload
+func (ro *RestarObject) Restar(state *int, payload *int) *int {
+	if payload == nil {
+		*state = *state - 1
+	} else {
+		*state = *state - *payload
+	}
+	return state
 }
 
 func main() {
@@ -44,8 +49,8 @@ func main() {
 	var myActions = &Actions{}
 
 	myActions.actionsObject = redux.NewActionsObject(myActions)
-
-	var myState = &IntState{initialState: 0}
+	initialState := 0
+	var myState = &IntState{initialState: &initialState}
 	businessObjectBuilder := redux.NewBusinessObjectBuilder(myState, myActions.actionsObject)
 
 	businessObjectBuilder.On(myActions.Sumar, Sumar)
@@ -57,7 +62,7 @@ func main() {
 	wg := sync.WaitGroup{}
 	pass := 1
 	myStore.Subscribe(myState, func(newState interface{}) {
-		logs.Log.Info(strconv.Itoa(newState.(int)))
+		logs.Log.Info(strconv.Itoa(*newState.(*int)))
 		var expected int
 		switch pass {
 		case 1:
@@ -71,8 +76,8 @@ func main() {
 		case 5:
 			expected = 7
 		}
-		if newState.(int) != expected {
-			logs.Log.Error(fmt.Sprintf("expected: `%v`, found: `%v`", expected, newState.(int)))
+		if *newState.(*int) != expected {
+			logs.Log.Error(fmt.Sprintf("expected: `%v`, found: `%v`", expected, *newState.(*int)))
 		}
 		pass++
 		wg.Done()

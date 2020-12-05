@@ -17,26 +17,27 @@ type StateManager interface {
 
 type stateManager struct {
 	publisher events.EventPublisher
-	state     interface{}
+	state     reflect.Value
 	typ       reflect.Type
 }
 
 func NewStateManager(publisher events.EventPublisher, stateEntity StateEntity) StateManager {
 	errorhandler.CheckNilParameter(map[string]interface{}{"publisher": publisher, "stateEntity": stateEntity})
-	return &stateManager{publisher: publisher, state: stateEntity.GetInitialState(), typ: reflect.TypeOf(stateEntity.GetInitialState())}
+	return &stateManager{publisher: publisher, state: reflect.ValueOf(stateEntity.GetInitialState()), typ: reflect.TypeOf(stateEntity.GetInitialState())}
+
 }
 
 func (s *stateManager) GetState() interface{} {
 	newState := s.state
 	if s.typ.Kind() == reflect.Ptr {
-		newState := reflect.New(s.typ).Interface()
-		errorhandler.TryPanic(copier.Copy(newState, s.state))
+		newState = reflect.New(s.typ.Elem())
+		errorhandler.TryPanic(copier.Copy(newState.Interface(), s.state.Interface()))
 	}
-	return newState
+	return newState.Interface()
 }
 
 func (s *stateManager) SetState(newState interface{}) {
-	s.state = newState
+	s.state = reflect.ValueOf(newState)
 	s.publisher.Publish(onNewStae)
 }
 
