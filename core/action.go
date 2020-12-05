@@ -21,8 +21,8 @@ type action struct {
 
 func (action *action) With(payload interface{}) Action {
 
-	if action.typ.Kind() == reflect.Invalid {
-		panic("This action is not asociated to any reduce!")
+	if action.typ == nil {
+		panic("no payload can be assigned to this action!")
 	}
 
 	if reflect.TypeOf(payload) != action.typ {
