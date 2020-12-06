@@ -4,11 +4,10 @@ import (
 	"github.com/janmbaco/go-infrastructure/errorhandler"
 )
 
-type SubscribeFunc func(newState interface{})
-
 type Store interface {
 	Dispatch(Action)
 	Subscribe(StateEntity, SubscribeFunc)
+	UnSubscribe(StateEntity, SubscribeFunc)
 }
 
 type store struct {
@@ -49,11 +48,18 @@ func (s *store) Subscribe(stateEntity StateEntity, subscribeFunc SubscribeFunc) 
 		panic("There is no BusinessObject for that StateEntity!")
 	}
 
-	s.bo[stateEntity].StateManager.Subscribe(func() {
-		subscribeFunc(s.bo[stateEntity].StateManager.GetState())
-	})
+	s.bo[stateEntity].StateManager.Subscribe(subscribeFunc)
 
 	errorhandler.OnErrorContinue(func() {
 		subscribeFunc(s.bo[stateEntity].StateManager.GetState())
 	})
+}
+
+func (s *store) UnSubscribe(stateEntity StateEntity, subscribeFunc SubscribeFunc) {
+	errorhandler.CheckNilParameter(map[string]interface{}{"stateEntity": stateEntity, "subscribeFunc": subscribeFunc})
+	if _, ok := s.bo[stateEntity]; !ok {
+		panic("There is no BusinessObject for that StateEntity!")
+	}
+
+	s.bo[stateEntity].StateManager.UnSubscribe(subscribeFunc)
 }

@@ -22,7 +22,7 @@ func NewBusinessObjectBuilder(stateEntity StateEntity, actionsObject ActionsObje
 
 	return &businessObjectBuilder{
 		stateEntity:   stateEntity,
-		stateManager:  NewStateManager(events.NewEventPublisher(), stateEntity),
+		stateManager:  NewStateManager(events.NewPublisher(), stateEntity),
 		actionsObject: actionsObject,
 		blf:           make(map[Action]reflect.Value)}
 }

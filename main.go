@@ -51,19 +51,19 @@ func main() {
 	myActions.actionsObject = redux.NewActionsObject(myActions)
 	initialState := 0
 	var myState = &IntState{initialState: &initialState}
+
 	businessObjectBuilder := redux.NewBusinessObjectBuilder(myState, myActions.actionsObject)
-
 	businessObjectBuilder.On(myActions.Sumar, Sumar)
-
 	businessObjectBuilder.SetActionsLogicByObject(&RestarObject{})
 
 	myStore := redux.NewStore(businessObjectBuilder.GetBusinessObject())
 
 	wg := sync.WaitGroup{}
 	pass := 0
-	myStore.Subscribe(myState, func(newState interface{}) {
+
+	fnSubscribe := func(newState interface{}) {
 		wg.Add(1)
-		logs.Log.Info(strconv.Itoa(*newState.(*int)))
+		logs.Log.Info("Current state: " + strconv.Itoa(*newState.(*int)))
 		var expected int
 		switch pass {
 		case 0:
@@ -78,20 +78,54 @@ func main() {
 			expected = 0
 		case 5:
 			expected = 7
+		case 6:
+			expected = -1
 		}
 		if *newState.(*int) != expected {
 			logs.Log.Error(fmt.Sprintf("expected: `%v`, found: `%v`", expected, *newState.(*int)))
 		}
 		pass++
 		wg.Done()
-	})
+	}
+
+	logs.Log.Info("Get current state on subscribe")
+	myStore.Subscribe(myState, fnSubscribe)
+
+	logs.Log.Info("Dispatch subscribed")
+
+	logs.Log.Info("Sum 1")
 	myStore.Dispatch(myActions.Sumar)
+
+	logs.Log.Info("Sum 5")
 	a := 5
 	myStore.Dispatch(myActions.Sumar.With(&a))
+
+	logs.Log.Info("Sum 1")
 	myStore.Dispatch(myActions.Sumar)
+
+	logs.Log.Info("Sum -7")
 	a = -7
 	myStore.Dispatch(myActions.Sumar.With(&a))
+
+	logs.Log.Info("Substract -7")
 	myStore.Dispatch(myActions.Restar.With(&a))
+
+	logs.Log.Info("Uunsubscribe")
+	myStore.UnSubscribe(myState, fnSubscribe)
+
+	logs.Log.Info("Dispatch unsubscribed")
+
+	logs.Log.Info("Sum -7")
+	myStore.Dispatch(myActions.Sumar.With(&a))
+
+	logs.Log.Info("Substract 1")
+	myStore.Dispatch(myActions.Restar)
+
+	logs.Log.Info("Get current state on resubscribe")
+	myStore.Subscribe(myState, fnSubscribe)
+
+	logs.Log.Info("finish")
+
 	wg.Wait()
 
 }
