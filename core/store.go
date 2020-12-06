@@ -52,4 +52,8 @@ func (s *store) Subscribe(stateEntity StateEntity, subscribeFunc SubscribeFunc) 
 	s.bo[stateEntity].StateManager.Subscribe(func() {
 		subscribeFunc(s.bo[stateEntity].StateManager.GetState())
 	})
+
+	errorhandler.OnErrorContinue(func() {
+		subscribeFunc(s.bo[stateEntity].StateManager.GetState())
+	})
 }

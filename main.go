@@ -60,11 +60,14 @@ func main() {
 	myStore := redux.NewStore(businessObjectBuilder.GetBusinessObject())
 
 	wg := sync.WaitGroup{}
-	pass := 1
+	pass := 0
 	myStore.Subscribe(myState, func(newState interface{}) {
+		wg.Add(1)
 		logs.Log.Info(strconv.Itoa(*newState.(*int)))
 		var expected int
 		switch pass {
+		case 0:
+			expected = 0
 		case 1:
 			expected = 1
 		case 2:
@@ -82,17 +85,13 @@ func main() {
 		pass++
 		wg.Done()
 	})
-	wg.Add(1)
 	myStore.Dispatch(myActions.Sumar)
-	wg.Add(1)
 	a := 5
 	myStore.Dispatch(myActions.Sumar.With(&a))
-	wg.Add(1)
 	myStore.Dispatch(myActions.Sumar)
-	wg.Add(1)
 	a = -7
 	myStore.Dispatch(myActions.Sumar.With(&a))
-	wg.Add(1)
 	myStore.Dispatch(myActions.Restar.With(&a))
 	wg.Wait()
+
 }

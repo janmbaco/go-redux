@@ -19,11 +19,12 @@ type stateManager struct {
 	publisher events.EventPublisher
 	state     reflect.Value
 	typ       reflect.Type
+	isBusy    chan bool
 }
 
 func NewStateManager(publisher events.EventPublisher, stateEntity StateEntity) StateManager {
 	errorhandler.CheckNilParameter(map[string]interface{}{"publisher": publisher, "stateEntity": stateEntity})
-	return &stateManager{publisher: publisher, state: reflect.ValueOf(stateEntity.GetInitialState()), typ: reflect.TypeOf(stateEntity.GetInitialState())}
+	return &stateManager{publisher: publisher, state: reflect.ValueOf(stateEntity.GetInitialState()), typ: reflect.TypeOf(stateEntity.GetInitialState()), isBusy: make(chan bool, 1)}
 
 }
 
@@ -37,8 +38,10 @@ func (s *stateManager) GetState() interface{} {
 }
 
 func (s *stateManager) SetState(newState interface{}) {
+	s.isBusy <- true
 	s.state = reflect.ValueOf(newState)
 	s.publisher.Publish(onNewStae)
+	<-s.isBusy
 }
 
 func (s *stateManager) Subscribe(fn func()) {
