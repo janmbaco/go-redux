@@ -21,12 +21,16 @@ func NewStore(businessObjects ...*BusinessObject) Store {
 	newStore := &store{
 		bo: make(map[StateEntity]*BusinessObject),
 	}
-
+	actions := make(map[ActionsObject]bool)
 	for _, bo := range businessObjects {
 		if _, ko := newStore.bo[bo.StateEnity]; ko {
 			panic("Cannot add multiple BusinessObject with the same StateEntity!")
 		}
+		if _, ko := actions[bo.ActionsObject]; ko {
+			panic("Cannot add multiple BusinessObject with the same ActionsObject!")
+		}
 		newStore.bo[bo.StateEnity] = bo
+		actions[bo.ActionsObject] = true
 	}
 
 	return newStore
