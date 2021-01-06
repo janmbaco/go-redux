@@ -6,8 +6,8 @@ import (
 
 type Store interface {
 	Dispatch(Action)
-	Subscribe(StateEntity, SubscribeFunc)
-	UnSubscribe(StateEntity, SubscribeFunc)
+	Subscribe(StateEntity, *SubscribeFunc)
+	UnSubscribe(StateEntity, *SubscribeFunc)
 }
 
 type store struct {
@@ -46,7 +46,7 @@ func (s *store) Dispatch(action Action) {
 	}
 }
 
-func (s *store) Subscribe(stateEntity StateEntity, subscribeFunc SubscribeFunc) {
+func (s *store) Subscribe(stateEntity StateEntity, subscribeFunc *SubscribeFunc) {
 	errorhandler.CheckNilParameter(map[string]interface{}{"stateEntity": stateEntity, "subscribeFunc": subscribeFunc})
 	if _, ok := s.bo[stateEntity]; !ok {
 		panic("There is no BusinessObject for that StateEntity!")
@@ -55,11 +55,11 @@ func (s *store) Subscribe(stateEntity StateEntity, subscribeFunc SubscribeFunc) 
 	s.bo[stateEntity].StateManager.Subscribe(subscribeFunc)
 
 	errorhandler.OnErrorContinue(func() {
-		subscribeFunc(s.bo[stateEntity].StateManager.GetState())
+		(*subscribeFunc)(s.bo[stateEntity].StateManager.GetState())
 	})
 }
 
-func (s *store) UnSubscribe(stateEntity StateEntity, subscribeFunc SubscribeFunc) {
+func (s *store) UnSubscribe(stateEntity StateEntity, subscribeFunc *SubscribeFunc) {
 	errorhandler.CheckNilParameter(map[string]interface{}{"stateEntity": stateEntity, "subscribeFunc": subscribeFunc})
 	if _, ok := s.bo[stateEntity]; !ok {
 		panic("There is no BusinessObject for that StateEntity!")

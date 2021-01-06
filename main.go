@@ -1,12 +1,9 @@
 package main
 
 import (
-	"fmt"
-	"strconv"
-	"sync"
-
 	"github.com/janmbaco/go-infrastructure/logs"
 	"github.com/janmbaco/go-redux/core"
+	"strconv"
 )
 
 type IntState struct {
@@ -44,6 +41,16 @@ func (ro *RestarObject) Restar(state *int, payload *int) *int {
 	return state
 }
 
+type subsciption struct {
+	fn1 redux.SubscribeFunc
+}
+
+func (s *subsciption) Initialize(name string) {
+	s.fn1 = func(newState interface{}) {
+		logs.Log.Info(name + " Current state: " + strconv.Itoa(*newState.(*int)))
+	}
+}
+
 func main() {
 
 	var myActions = &Actions{}
@@ -58,38 +65,17 @@ func main() {
 
 	myStore := redux.NewStore(businessObjectBuilder.GetBusinessObject())
 
-	wg := sync.WaitGroup{}
-	pass := 0
-
-	fnSubscribe := func(newState interface{}) {
-		wg.Add(1)
-		logs.Log.Info("Current state: " + strconv.Itoa(*newState.(*int)))
-		var expected int
-		switch pass {
-		case 0:
-			expected = 0
-		case 1:
-			expected = 1
-		case 2:
-			expected = 6
-		case 3:
-			expected = 7
-		case 4:
-			expected = 0
-		case 5:
-			expected = 7
-		case 6:
-			expected = -1
-		}
-		if *newState.(*int) != expected {
-			logs.Log.Error(fmt.Sprintf("expected: `%v`, found: `%v`", expected, *newState.(*int)))
-		}
-		pass++
-		wg.Done()
-	}
+	sub1 := &subsciption{}
+	sub1.Initialize("sub1")
 
 	logs.Log.Info("Get current state on subscribe")
-	myStore.Subscribe(myState, fnSubscribe)
+	myStore.Subscribe(myState, &sub1.fn1)
+
+	sub2 := &subsciption{}
+	sub2.Initialize("sub2")
+
+	logs.Log.Info("Get current state on subscribe")
+	myStore.Subscribe(myState, &sub2.fn1)
 
 	logs.Log.Info("Dispatch subscribed")
 
@@ -111,7 +97,7 @@ func main() {
 	myStore.Dispatch(myActions.Restar.With(&a))
 
 	logs.Log.Info("Uunsubscribe")
-	myStore.UnSubscribe(myState, fnSubscribe)
+	myStore.UnSubscribe(myState, &sub1.fn1)
 
 	logs.Log.Info("Dispatch unsubscribed")
 
@@ -122,10 +108,8 @@ func main() {
 	myStore.Dispatch(myActions.Restar)
 
 	logs.Log.Info("Get current state on resubscribe")
-	myStore.Subscribe(myState, fnSubscribe)
+	myStore.Subscribe(myState, &sub1.fn1)
 
 	logs.Log.Info("finish")
-
-	wg.Wait()
 
 }
