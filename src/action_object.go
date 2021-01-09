@@ -1,7 +1,9 @@
 package redux
 
 import (
+	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/janmbaco/go-infrastructure/errorhandler"
 )
@@ -71,13 +73,23 @@ func getActionsIn(object interface{}) []Action {
 	rv := reflect.Indirect(reflect.ValueOf(object))
 	rt := rv.Type()
 	actionType := reflect.TypeOf((*Action)(nil)).Elem()
+	panicMessage := make([]string, 1)
 	for i := 0; i < rt.NumField(); i++ {
 		if rt.Field(i).Type.Implements(actionType) {
 			if rv.Field(i).IsNil() {
-				rv.Field(i).Set(reflect.ValueOf(&action{name: rt.Field(i).Name}))
+				errorhandler.TryCatchError(func() {
+					rv.Field(i).Set(reflect.ValueOf(&action{name: rt.Field(i).Name}))
+					result = append(result, rv.Field(i).Elem().Interface().(Action))
+				}, func(err error) {
+					panicMessage = append(panicMessage, fmt.Sprintf("The custom action '%v' of type '%v' in '%v' can't be nil!", rt.Field(i).Name, rt.Field(i).Type.String(), rt.String()))
+				})
+			} else {
+				result = append(result, rv.Field(i).Interface().(Action))
 			}
-			result = append(result, rv.Field(i).Elem().Interface().(Action))
 		}
+	}
+	if len(panicMessage) > 1 {
+		panic(strings.Join(panicMessage, "\n"))
 	}
 	if len(result) == 0 {
 		panic("There isn`t any action on the actionsObject object!")

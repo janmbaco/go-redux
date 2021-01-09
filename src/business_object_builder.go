@@ -3,33 +3,35 @@ package redux
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/janmbaco/go-infrastructure/errorhandler"
-	"github.com/janmbaco/go-infrastructure/events"
 	"github.com/janmbaco/go-infrastructure/logs"
 )
 
 type businessObjectBuilder struct {
-	stateEntity   StateEntity
-	stateManager  StateManager
+	initialState  interface{}
+	selector      string
 	actionsObject ActionsObject
 	blf           map[Action]reflect.Value //business logic funcionality
 }
 
-func NewBusinessObjectBuilder(stateEntity StateEntity, actionsObject ActionsObject) *businessObjectBuilder {
-	errorhandler.CheckNilParameter(map[string]interface{}{"stateEntity": stateEntity, "actionsObject": actionsObject})
+func NewBusinessObjectBuilder(initialState interface{}, actions interface{}) *businessObjectBuilder {
+	errorhandler.CheckNilParameter(map[string]interface{}{"initialState": initialState, "actions": actions})
 
 	return &businessObjectBuilder{
-		stateEntity:   stateEntity,
-		stateManager:  NewStateManager(events.NewPublisher(), stateEntity),
-		actionsObject: actionsObject,
+		initialState:  initialState,
+		actionsObject: NewActionsObject(actions),
 		blf:           make(map[Action]reflect.Value)}
 }
 
-func (builder *businessObjectBuilder) SetStateManager(stateManager StateManager) *businessObjectBuilder {
-	errorhandler.CheckNilParameter(map[string]interface{}{"stateManager": stateManager})
-	builder.stateManager = stateManager
+func (builder *businessObjectBuilder) SetSelector(selector string) *businessObjectBuilder {
+	if selector == "" {
+		panic("The selector can not be string empty!")
+	}
+
+	builder.selector = selector
 	return builder
 }
 
@@ -50,7 +52,7 @@ func (builder *businessObjectBuilder) On(action Action, function interface{}) *b
 		panic("The function must be a Func!")
 	}
 
-	if typeOfState := reflect.TypeOf(builder.stateEntity.GetInitialState()); functionType.NumIn() < 1 || functionType.NumIn() > 2 || functionType.NumOut() != 1 || functionType.In(0) != functionType.Out(0) || functionType.In(0) != typeOfState {
+	if typeOfState := reflect.TypeOf(builder.initialState); functionType.NumIn() < 1 || functionType.NumIn() > 2 || functionType.NumOut() != 1 || functionType.In(0) != functionType.Out(0) || functionType.In(0) != typeOfState {
 		panic(fmt.Sprintf("The function for action `%v` must to have the contract func(state `%v`, payload *any) `%v`", action.GetName(), typeOfState.Name(), typeOfState.Name()))
 	}
 
@@ -64,7 +66,7 @@ func (builder *businessObjectBuilder) On(action Action, function interface{}) *b
 
 func (builder *businessObjectBuilder) SetActionsLogicByObject(object interface{}) *businessObjectBuilder {
 	errorhandler.CheckNilParameter(map[string]interface{}{"object": object})
-	typeOfState := reflect.TypeOf(builder.stateEntity.GetInitialState())
+	typeOfState := reflect.TypeOf(builder.initialState)
 	if reflect.TypeOf(object) == typeOfState {
 		panic("You cannot create the logic of the actions with the same type as the state!")
 	}
@@ -94,7 +96,7 @@ func (builder *businessObjectBuilder) SetActionsLogicByObject(object interface{}
 	return builder
 }
 
-func (builder *businessObjectBuilder) GetBusinessObject() *BusinessObject {
+func (builder *businessObjectBuilder) GetBusinessObject() BusinessObject {
 
 	if builder.actionsObject == nil {
 		panic("There isn´t any ActionsObject to load to the BusinessObject!")
@@ -137,10 +139,9 @@ func (builder *businessObjectBuilder) GetBusinessObject() *BusinessObject {
 		reducer: reducerFunc,
 	}
 
-	return &BusinessObject{
-		ActionsObject: builder.actionsObject,
-		Reducer:       reducer,
-		StateEnity:    builder.stateEntity,
-		StateManager:  builder.stateManager,
+	if builder.selector == "" {
+		builder.selector = strconv.Itoa(int(reflect.ValueOf(builder.initialState).Pointer()))
 	}
+
+	return NewBusinessObject(builder.initialState, reducer, builder.actionsObject, builder.selector)
 }
