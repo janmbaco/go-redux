@@ -5,40 +5,40 @@ import (
 	"github.com/janmbaco/go-redux/src"
 )
 
-type Actions struct {
-	Sum          redux.Action
-	Substraction redux.Action
+type CounterActions struct {
+	Increment redux.Action
+	Decrement redux.Action
 }
 
-func Sum(state int, payload int) int {
+func Increment(state int, payload int) int {
 	return state + payload
 }
 
-type SubstractionLogic struct {
+type DecrementLogic struct {
 }
 
-func (r *SubstractionLogic) Substraction(state int, payload int) int {
+func (r *DecrementLogic) Decrement(state int, payload int) int {
 	return state - payload
 }
 
 func main() {
 
-	actions := &Actions{}
+	counterActions := &CounterActions{}
 
-	builder := redux.NewBusinessObjectBuilder(0, actions)
-	builder.On(actions.Sum, Sum)
-	builder.SetActionsLogicByObject(&SubstractionLogic{})
+	builder := redux.NewBusinessParamBuilder(0, counterActions)
+	builder.On(counterActions.Increment, Increment)
+	builder.SetActionsLogicByObject(&DecrementLogic{})
 	builder.SetSelector("counter")
 
-	counterBO := builder.GetBusinessObject()
+	counterParam := builder.GetBusinessParam()
 
-	store := redux.NewStore(counterBO)
+	store := redux.NewStore(counterParam)
 
 	fmt.Printf("current state: '%v'\n", store.GetState())
 	// output:
 	// current state: '0'
 
-	store.Dispatch(actions.Sum.With(1))
+	store.Dispatch(counterActions.Increment.With(1))
 	fmt.Printf("current state: '%v'\n", store.GetState())
 	// output:
 	// current state: '1'
@@ -47,50 +47,50 @@ func main() {
 		fmt.Printf("globalSubscription - state changed, current state: '%v'\n", store.GetState())
 	}
 	store.Subscribe(&globalSubscription)
-	store.Dispatch(actions.Substraction.With(1))
+	store.Dispatch(counterActions.Decrement.With(1))
 	// output:
 	// globalSubscription - state changed, current state: '0'
 
 	store.UnSubscribe(&globalSubscription)
 
-	actions2 := &Actions{}
-	counter2BO := redux.NewBusinessObjectBuilder(10, actions2).
-		On(actions2.Sum, Sum).
-		SetActionsLogicByObject(&SubstractionLogic{}).
+	counter2Actions := &CounterActions{}
+	counter2Param := redux.NewBusinessParamBuilder(10, counter2Actions).
+		On(counter2Actions.Increment, Increment).
+		SetActionsLogicByObject(&DecrementLogic{}).
 		SetSelector("counter2").
-		GetBusinessObject()
+		GetBusinessParam()
 
-	store.AddBusinessObject(counter2BO)
+	store.AddReducer(counter2Param)
 
-	actions3 := &Actions{}
-	counter3BO := redux.NewBusinessObjectBuilder(100, actions3).
-		On(actions3.Sum, Sum).
-		SetActionsLogicByObject(&SubstractionLogic{}).
+	counter3Actions := &CounterActions{}
+	counter3Param := redux.NewBusinessParamBuilder(100, counter3Actions).
+		On(counter3Actions.Increment, Increment).
+		SetActionsLogicByObject(&DecrementLogic{}).
 		SetSelector("counter3").
-		GetBusinessObject()
+		GetBusinessParam()
 
-	store.AddBusinessObject(counter3BO)
+	store.AddReducer(counter3Param)
 
 	fmt.Printf("current state: '%v'\n", store.GetState())
 	// output:
 	// current state: '0'
 
-	store.Dispatch(actions.Sum.With(1))
-	store.Dispatch(actions2.Sum.With(1))
-	store.Dispatch(actions3.Sum.With(1))
+	store.Dispatch(counterActions.Increment.With(1))
+	store.Dispatch(counter2Actions.Increment.With(1))
+	store.Dispatch(counter3Actions.Increment.With(1))
 
 	fmt.Printf("current state: '%v'\n", store.GetState())
 	// output:
 	//current state: '[1 11 101]'
 
-	store.RemoveBusinessObject(counter3BO)
+	store.RemoveReducer("counter3")
 	func() {
 		defer func() {
 			if re := recover(); re != nil {
 				fmt.Printf(re.(string) + "\n")
 			}
 		}()
-		store.Dispatch(actions3.Sum.With(1))
+		store.Dispatch(counter3Actions.Increment.With(1))
 	}()
 	// output:
 	//There is not any Reducers that execute this action!
@@ -111,8 +111,8 @@ func main() {
 		fmt.Printf("counterSubscribe - state changed, current state: '%v'\n", newState)
 	}
 	store.SubscribeTo("counter", &counterSubscribe)
-	store.Dispatch(actions.Substraction.With(1))
-	store.Dispatch(actions2.Substraction.With(11))
+	store.Dispatch(counterActions.Decrement.With(1))
+	store.Dispatch(counter2Actions.Decrement.With(11))
 	// output:
 	//counterSubscribe - state changed, current state: '0'
 
@@ -120,15 +120,15 @@ func main() {
 		fmt.Printf("counter2Subscribe - state changed, current state: '%v'\n", newState)
 	}
 	store.SubscribeTo("counter2", &counter2Subscribe)
-	store.Dispatch(actions.Sum.With(1))
-	store.Dispatch(actions2.Sum.With(10))
+	store.Dispatch(counterActions.Increment.With(1))
+	store.Dispatch(counter2Actions.Increment.With(10))
 	// output:
 	//ounterSubscribe - state changed, current state: '1'
 	//counter2Subscribe - state changed, current state: '10'
 
 	store.UnSubscribeFrom("counter", &counterSubscribe)
-	store.Dispatch(actions.Sum.With(5))
-	store.Dispatch(actions2.Substraction.With(8))
+	store.Dispatch(counterActions.Increment.With(5))
+	store.Dispatch(counter2Actions.Decrement.With(8))
 	// output:
 	//counter2Subscribe - state changed, current state: '2'
 

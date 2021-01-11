@@ -10,23 +10,23 @@ import (
 	"github.com/janmbaco/go-infrastructure/logs"
 )
 
-type businessObjectBuilder struct {
+type businessParamBuilder struct {
 	initialState  interface{}
 	selector      string
 	actionsObject ActionsObject
 	blf           map[Action]reflect.Value //business logic funcionality
 }
 
-func NewBusinessObjectBuilder(initialState interface{}, actions interface{}) *businessObjectBuilder {
-	errorhandler.CheckNilParameter(map[string]interface{}{"initialState": initialState, "actions": actions})
+func NewBusinessParamBuilder(initialState interface{}, actions interface{}) *businessParamBuilder {
+	errorhandler.CheckNilParameter(map[string]interface{}{"initialState": initialState, "actionsObject": actions})
 
-	return &businessObjectBuilder{
+	return &businessParamBuilder{
 		initialState:  initialState,
 		actionsObject: NewActionsObject(actions),
 		blf:           make(map[Action]reflect.Value)}
 }
 
-func (builder *businessObjectBuilder) SetSelector(selector string) *businessObjectBuilder {
+func (builder *businessParamBuilder) SetSelector(selector string) *businessParamBuilder {
 	if selector == "" {
 		panic("The selector can not be string empty!")
 	}
@@ -35,7 +35,7 @@ func (builder *businessObjectBuilder) SetSelector(selector string) *businessObje
 	return builder
 }
 
-func (builder *businessObjectBuilder) On(action Action, function interface{}) *businessObjectBuilder {
+func (builder *businessParamBuilder) On(action Action, function interface{}) *businessParamBuilder {
 	errorhandler.CheckNilParameter(map[string]interface{}{"action": action, "function": function})
 
 	if !builder.actionsObject.Contains(action) {
@@ -64,11 +64,11 @@ func (builder *businessObjectBuilder) On(action Action, function interface{}) *b
 	return builder
 }
 
-func (builder *businessObjectBuilder) SetActionsLogicByObject(object interface{}) *businessObjectBuilder {
+func (builder *businessParamBuilder) SetActionsLogicByObject(object interface{}) *businessParamBuilder {
 	errorhandler.CheckNilParameter(map[string]interface{}{"object": object})
 	typeOfState := reflect.TypeOf(builder.initialState)
 	if reflect.TypeOf(object) == typeOfState {
-		panic("You cannot create the logic of the actions with the same type as the state!")
+		panic("You cannot create the logic of the actionsObject with the same type as the state!")
 	}
 
 	rv := reflect.ValueOf(object)
@@ -96,10 +96,10 @@ func (builder *businessObjectBuilder) SetActionsLogicByObject(object interface{}
 	return builder
 }
 
-func (builder *businessObjectBuilder) GetBusinessObject() BusinessObject {
+func (builder *businessParamBuilder) GetBusinessParam() BusinessParam {
 
 	if builder.actionsObject == nil {
-		panic("There isn´t any ActionsObject to load to the BusinessObject!")
+		panic("There isn´t any ActionsObject to load to the BusinessParam!")
 	}
 
 	panicMessage := strings.Builder{}
@@ -112,7 +112,7 @@ func (builder *businessObjectBuilder) GetBusinessObject() BusinessObject {
 		panic(panicMessage.String())
 	}
 
-	reducerFunc := func(state interface{}, action Action) interface{} {
+	reducer := func(state interface{}, action Action) interface{} {
 
 		function, exists := builder.blf[action]
 		if !exists {
@@ -135,13 +135,9 @@ func (builder *businessObjectBuilder) GetBusinessObject() BusinessObject {
 
 	}
 
-	reducer := &reducer{
-		reducer: reducerFunc,
-	}
-
 	if builder.selector == "" {
 		builder.selector = strconv.Itoa(int(reflect.ValueOf(builder.initialState).Pointer()))
 	}
 
-	return NewBusinessObject(builder.initialState, reducer, builder.actionsObject, builder.selector)
+	return NewBusinessParam(builder.initialState, reducer, builder.actionsObject, builder.selector)
 }

@@ -11,8 +11,8 @@ type Store interface {
 	Dispatch(Action)
 	Subscribe(*func())
 	UnSubscribe(*func())
-	AddBusinessObject(BusinessObject)
-	RemoveBusinessObject(BusinessObject)
+	AddReducer(BusinessParam)
+	RemoveReducer(string)
 	GetStateOf(string) interface{}
 	SubscribeTo(string, *func(interface{}))
 	UnSubscribeFrom(string, *func(interface{}))
@@ -21,74 +21,80 @@ type Store interface {
 const onNewState = "onNewState"
 
 type store struct {
-	businessObjects map[string]BusinessObject
-	stateManagers   map[string]*stateManager
-	publisher       events.Publisher
+	reducers      map[string]Reducer
+	actionsObject map[string]ActionsObject
+	stateManagers map[string]*stateManager
+	publisher     events.Publisher
 }
 
-func NewStore(businessObjects ...BusinessObject) Store {
-	if len(businessObjects) == 0 {
-		panic("There must be at least one businessObject parameter")
+func NewStore(params ...BusinessParam) Store {
+	if len(params) == 0 {
+		panic("There must be at least one businessParam parameter")
 	}
 
 	newStore := &store{
-		businessObjects: make(map[string]BusinessObject),
-		stateManagers:   make(map[string]*stateManager),
-		publisher:       events.NewPublisher(),
+		reducers:      make(map[string]Reducer),
+		actionsObject: make(map[string]ActionsObject),
+		stateManagers: make(map[string]*stateManager),
+		publisher:     events.NewPublisher(),
 	}
-	actions := make(map[ActionsObject]bool)
-	for _, bo := range businessObjects {
-		if _, ko := newStore.businessObjects[bo.GetSelector()]; ko {
-			panic("Cannot add multiple BusinessObject with the same StateEntity!")
+	for _, param := range params {
+		if _, ko := newStore.actionsObject[param.GetSelector()]; ko {
+			panic("Cannot add multiple Reducer with the same ActionsObject!")
 		}
-		if _, ko := actions[bo.GetActionsObject()]; ko {
-			panic("Cannot add multiple BusinessObject with the same ActionsObject!")
+		if _, ko := newStore.reducers[param.GetSelector()]; ko {
+			panic("Cannot add multiple Reducer with the same Selector!")
 		}
-		newStore.businessObjects[bo.GetSelector()] = bo
-		newStore.stateManagers[bo.GetSelector()] = newStateManager(newStore.publisher, bo.GetInitialState(), bo.GetSelector())
-		actions[bo.GetActionsObject()] = true
+		newStore.actionsObject[param.GetSelector()] = param.GetActionsObject()
+		newStore.reducers[param.GetSelector()] = param.GetReducer()
+		newStore.stateManagers[param.GetSelector()] = newStateManager(newStore.publisher, param.GetInitialState(), param.GetSelector())
 	}
 
 	return newStore
 }
 
-func (s *store) AddBusinessObject(object BusinessObject) {
-	errorhandler.CheckNilParameter(map[string]interface{}{"object": object})
-	if _, ko := s.businessObjects[object.GetSelector()]; ko {
-		panic("Cannot add multiple BusinessObject with the same selector!")
+func (s *store) AddReducer(param BusinessParam) {
+	errorhandler.CheckNilParameter(map[string]interface{}{"param": param})
+	if _, ko := s.reducers[param.GetSelector()]; ko {
+		panic("Cannot add multiple Reducer with the same selector!")
 	}
-	for _, bo := range s.businessObjects {
-		if bo.GetActionsObject() == object.GetActionsObject() {
-			panic("Cannot add multiple BusinessObject with the same ActionsObject!")
+	for _, actionsObject := range s.actionsObject {
+		if actionsObject == param.GetActionsObject() {
+			panic("Cannot add multiple reducer with the same ActionsObject!")
 		}
 	}
-	s.businessObjects[object.GetSelector()] = object
-	if _, contains := s.stateManagers[object.GetSelector()]; !contains {
-		s.stateManagers[object.GetSelector()] = newStateManager(s.publisher, object.GetInitialState(), object.GetSelector())
+	s.reducers[param.GetSelector()] = param.GetReducer()
+	s.actionsObject[param.GetSelector()] = param.GetActionsObject()
+	if _, contains := s.stateManagers[param.GetSelector()]; !contains {
+		s.stateManagers[param.GetSelector()] = newStateManager(s.publisher, param.GetInitialState(), param.GetSelector())
 	}
 }
 
-func (s *store) RemoveBusinessObject(object BusinessObject) {
-	errorhandler.CheckNilParameter(map[string]interface{}{"object": object})
-	if _, ok := s.businessObjects[object.GetSelector()]; ok {
-		delete(s.businessObjects, object.GetSelector())
+func (s *store) RemoveReducer(selector string) {
+	checkSelector(selector)
+	s.checkReducer(selector)
+	if _, ok := s.reducers[selector]; ok {
+		delete(s.reducers, selector)
+	}
+	if _, ok := s.actionsObject[selector]; ok {
+		delete(s.actionsObject, selector)
 	}
 }
 
 func (s *store) Dispatch(action Action) {
 	errorhandler.CheckNilParameter(map[string]interface{}{"action": action})
-	dispatched := false
-	for _, bo := range s.businessObjects {
-		if bo.GetActionsObject().Contains(action) {
-			s.stateManagers[bo.GetSelector()].SetState(bo.GetReducer().Reduce(s.stateManagers[bo.GetSelector()].GetState(), action))
-			dispatched = true
+	var selector string
+	for sel, actionObject := range s.actionsObject {
+		if actionObject.Contains(action) {
+			selector = sel
 			break
 		}
 	}
-	if !dispatched {
+	if selector == "" {
 		panic("There is not any Reducers that execute this action!")
 	}
 
+	s.stateManagers[selector].SetState(s.reducers[selector](s.stateManagers[selector].GetState(), action))
 }
 
 func (s *store) Subscribe(subscribeFunc *func()) {
@@ -104,7 +110,7 @@ func (s *store) UnSubscribe(subscribeFunc *func()) {
 
 func (s *store) GetState() interface{} {
 	var globalState interface{}
-	if len(s.businessObjects) == 1 {
+	if len(s.reducers) == 1 {
 		for _, stateManager := range s.stateManagers {
 			globalState = stateManager.GetState()
 		}
@@ -118,24 +124,35 @@ func (s *store) GetState() interface{} {
 }
 
 func (s *store) GetStateOf(selector string) interface{} {
-	s.checkSelector(selector)
+	checkSelector(selector)
+	s.checkStateManager(selector)
 	return s.stateManagers[selector].GetState()
 }
 
 func (s *store) SubscribeTo(selector string, fn *func(interface{})) {
-	s.checkSelector(selector)
+	checkSelector(selector)
+	s.checkStateManager(selector)
 	s.stateManagers[selector].Subscribe(fn)
 }
 
 func (s *store) UnSubscribeFrom(selector string, fn *func(interface{})) {
-	s.checkSelector(selector)
+	checkSelector(selector)
+	s.checkStateManager(selector)
 	s.stateManagers[selector].UnSubscribe(fn)
 }
 
-func (s *store) checkSelector(selector string) {
+func checkSelector(selector string) {
 	if selector == "" {
 		panic("The selector can not be string empty!")
 	}
+}
+func (s *store) checkStateManager(selector string) {
+	if _, ok := s.stateManagers[selector]; !ok {
+		panic(fmt.Sprintf("There is not any state with the selector: '%v'!", selector))
+	}
+}
+
+func (s *store) checkReducer(selector string) {
 	if _, ok := s.stateManagers[selector]; !ok {
 		panic(fmt.Sprintf("There is not any state with the selector: '%v'!", selector))
 	}

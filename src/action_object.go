@@ -23,7 +23,7 @@ type actionObject struct {
 	nameByAction map[Action]string
 }
 
-func NewActionsObject(object interface{}) *actionObject {
+func NewActionsObject(object interface{}) ActionsObject {
 	errorhandler.CheckNilParameter(map[string]interface{}{"object": object})
 	if object == nil {
 		panic("The object parameter can`t be nil!")
