@@ -91,7 +91,7 @@ func (s *store) Dispatch(action Action) {
 		}
 	}
 	if selector == "" {
-		panic("There is not any Reducers that execute this action!")
+		panic("There are not any Reducers that execute this action!")
 	}
 
 	s.stateManagers[selector].SetState(s.reducers[selector](s.stateManagers[selector].GetState(), action))
@@ -109,16 +109,9 @@ func (s *store) UnSubscribe(subscribeFunc *func()) {
 }
 
 func (s *store) GetState() interface{} {
-	var globalState interface{}
-	if len(s.reducers) == 1 {
-		for _, stateManager := range s.stateManagers {
-			globalState = stateManager.GetState()
-		}
-	} else {
-		globalState = make([]interface{}, 0)
-		for _, stateManager := range s.stateManagers {
-			globalState = append(globalState.([]interface{}), stateManager.GetState())
-		}
+	globalState := make(map[string]interface{})
+	for selector, stateManager := range s.stateManagers {
+		globalState[selector] = stateManager.GetState()
 	}
 	return globalState
 }

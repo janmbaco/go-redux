@@ -8,8 +8,8 @@ import (
 type Action interface {
 	With(interface{}) Action
 	GetPayload() reflect.Value
-	SetType(reflect.Type)
-	GetName() string
+	SetPayloadType(reflect.Type)
+	GetType() string
 }
 
 type action struct {
@@ -45,10 +45,10 @@ func (action *action) GetPayload() reflect.Value {
 	return result
 }
 
-func (action *action) SetType(typ reflect.Type) {
+func (action *action) SetPayloadType(typ reflect.Type) {
 	action.typ = typ
 }
 
-func (action *action) GetName() string {
+func (action *action) GetType() string {
 	return action.name
 }

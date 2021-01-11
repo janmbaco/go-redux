@@ -35,9 +35,9 @@ func NewActionsObject(object interface{}) ActionsObject {
 		nameByAction: make(map[Action]string),
 	}
 	for _, b := range result.actions {
-		result.actionsNames = append(result.actionsNames, b.GetName())
-		result.actionByName[b.GetName()] = b
-		result.nameByAction[b] = b.GetName()
+		result.actionsNames = append(result.actionsNames, b.GetType())
+		result.actionByName[b.GetType()] = b
+		result.nameByAction[b] = b.GetType()
 	}
 	return result
 }

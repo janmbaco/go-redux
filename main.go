@@ -36,12 +36,12 @@ func main() {
 
 	fmt.Printf("current state: '%v'\n", store.GetState())
 	// output:
-	// current state: '0'
+	//current state: 'map[counter:0]'
 
 	store.Dispatch(counterActions.Increment.With(1))
 	fmt.Printf("current state: '%v'\n", store.GetState())
 	// output:
-	// current state: '1'
+	//current state: 'map[counter:1]'
 
 	globalSubscription := func() {
 		fmt.Printf("globalSubscription - state changed, current state: '%v'\n", store.GetState())
@@ -49,7 +49,7 @@ func main() {
 	store.Subscribe(&globalSubscription)
 	store.Dispatch(counterActions.Decrement.With(1))
 	// output:
-	// globalSubscription - state changed, current state: '0'
+	//	//globalSubscription - state changed, current state: 'map[counter:0]'
 
 	store.UnSubscribe(&globalSubscription)
 
@@ -73,7 +73,7 @@ func main() {
 
 	fmt.Printf("current state: '%v'\n", store.GetState())
 	// output:
-	// current state: '0'
+	//current state: 'map[counter:0 counter2:10 counter3:100]'
 
 	store.Dispatch(counterActions.Increment.With(1))
 	store.Dispatch(counter2Actions.Increment.With(1))
@@ -81,7 +81,7 @@ func main() {
 
 	fmt.Printf("current state: '%v'\n", store.GetState())
 	// output:
-	//current state: '[1 11 101]'
+	//current state: 'map[counter:1 counter2:11 counter3:101]'
 
 	store.RemoveReducer("counter3")
 	func() {
@@ -93,11 +93,11 @@ func main() {
 		store.Dispatch(counter3Actions.Increment.With(1))
 	}()
 	// output:
-	//There is not any Reducers that execute this action!
+	//There are not any Reducers that execute this action!
 
 	fmt.Printf("current state: '%v'\n", store.GetState())
 	// output:
-	//current state: '[1 11 101]'
+	//current state: 'map[counter:1 counter2:11 counter3:101]'
 
 	fmt.Printf("current state counter: '%v'\n", store.GetStateOf("counter"))
 	fmt.Printf("current state counter2: '%v'\n", store.GetStateOf("counter2"))

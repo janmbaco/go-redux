@@ -53,11 +53,11 @@ func (builder *businessParamBuilder) On(action Action, function interface{}) *bu
 	}
 
 	if typeOfState := reflect.TypeOf(builder.initialState); functionType.NumIn() < 1 || functionType.NumIn() > 2 || functionType.NumOut() != 1 || functionType.In(0) != functionType.Out(0) || functionType.In(0) != typeOfState {
-		panic(fmt.Sprintf("The function for action `%v` must to have the contract func(state `%v`, payload *any) `%v`", action.GetName(), typeOfState.Name(), typeOfState.Name()))
+		panic(fmt.Sprintf("The function for action `%v` must to have the contract func(state `%v`, payload *any) `%v`", action.GetType(), typeOfState.Name(), typeOfState.Name()))
 	}
 
 	if functionType.NumIn() == 2 {
-		action.SetType(functionType.In(1))
+		action.SetPayloadType(functionType.In(1))
 	}
 
 	builder.blf[action] = functionValue
@@ -84,7 +84,7 @@ func (builder *businessParamBuilder) SetActionsLogicByObject(object interface{})
 			if builder.actionsObject.ContainsByName(m.Name) {
 				action := builder.actionsObject.GetActionByName(m.Name)
 				if mt.NumIn() == 3 {
-					action.SetType(mt.In(2))
+					action.SetPayloadType(mt.In(2))
 				}
 				builder.blf[action] = rv.Method(i)
 			} else {
@@ -105,7 +105,7 @@ func (builder *businessParamBuilder) GetBusinessParam() BusinessParam {
 	panicMessage := strings.Builder{}
 	for _, action := range builder.actionsObject.GetActions() {
 		if _, ok := builder.blf[action]; !ok {
-			panicMessage.WriteString(fmt.Sprintf("The logic for the actionsObject '%v' is not defined!\n", action.GetName()))
+			panicMessage.WriteString(fmt.Sprintf("The logic for the actionsObject '%v' is not defined!\n", action.GetType()))
 		}
 	}
 	if panicMessage.Len() > 0 {

@@ -10,11 +10,11 @@ Go Redux is an implementation of [Redux principles](https://redux.js.org/underst
 - [Example](#example)
 
 ## Motivation
-On the ecosstem of open code tools for GO I did not find an implementation of the redux pattern that complied with Redux and SOLID principles.
+On the ecosystem of open code tools for GO I did not find an implementation of the redux pattern that complied with Redux and SOLID principles.
 
-To create clean code, I needed a tool that would clearly separate business logic from what is purely infrastructure. Where "a single source of truth" was built by injecting the application's business logic.
+To create clean code, I needed a tool that would clearly separate business logic from what is purely infrastructure where "a single source of truth" was built by injecting the application's business logic.
 
-To do this, I considered that the store should be built with *business param* that would contains the *pure function to perform the state transitions* (*Reducer*) as well as some utilities like the initial state value, the *Selector* and the action definitions.
+To do this, I considered that the store should be built with *business param* that would contain the *pure function to perform state transitions* (*Reducer*) as well as some utilities like  initial state value, the *Selector* and action definitions.
 
 Any state transition must be done by launching an action through the *Reducer* that would execute the business logic. And this would be managed from the *single source of truth* (*Store*).
 
@@ -31,7 +31,7 @@ $ go get github.com/janmbaco/redux
 
 ### Actions
 
-The *Actions* describes *What* is going to be done and *With* what information.
+An *Action* describes *What* is going to be done and *With* what information.
 Defining actions is as simple as declaring the class, adding attributes of type *redux.Action*. Then you can create the object with that declaration.
 
 ```go
@@ -50,12 +50,12 @@ func main() {
 
 A *BusinessParam* is an object that contains the *ActionsObject*, the *Reducer*, the *InitialState* and the *Selector*.
 
-A *ActionsObject* is an object that contains the actions that can be performed with a certain *business logic*.
+An *ActionsObject* is an object that contains the actions that can be performed with a certain *business logic*.
 
 A *Reducer* is a [pure function](https://en.wikipedia.org/wiki/Pure_function) with `(state interface{}, action redux.Action) => state interface{}` signature.
-It describes *How* an action transform the state into the next state.
+It describes *How* an action transforms the state into the next state.
 
-A *InitialState* is the first value of the state. The shape of the state is up to you: it can be a primitive, an array or an object.
+An *InitialState* is the first value of the state. The shape of the state is up to you: it can be a primitive, an array or an object.
 
 A *Selector* is a string that identifies a part of the global state array that BusinessParam Reducer can transform.
 
@@ -77,7 +77,7 @@ func Increment(state int, payload int) int {
 	builder.On(actions.Increment, Increment)
 ...
 ```
- 2. By setting an object that contains functions with the same name as actions and each function returns the next state
+ 2. By setting an object that contains functions with the same name as actions, each function returning the next state
 ```go
 ...
 type DecrementLogic struct{
@@ -90,7 +90,7 @@ func (r *DecrementLogic) Decrement(state int, payload int) int{
 	builder.SetActionsLogicByObject(&SubstractionLogic{})
 ...
 ```
-In both cases the functions must have at least as an input parameter the previous state, as well as optionally a payload parameter from the action.
+In both cases functions must have at least as input parameter the previous state, as well as optionally a payload parameter from the action.
 
 Optionally, a selector can be configured to identify a part of the state array.
 ```go
@@ -114,21 +114,21 @@ It is built by injecting the *BusinessParams*
 	store := redux.NewStore(counterParam)
 ...
 ```
-To get the global status, just call the *GetState* function
+To get the global state, just call the *GetState* function
 ```go
 ...
 	fmt.Printf("current state: '%v'\n", store.GetState())
 	// output:
-	// current state: '0'
+	//current state: 'map[counter:0]'
 ...
 ```
-To execute an action, you only have to call the *Dispatch* function with the action, you can add the necessary payload with the *With* function of the action.
+To execute an action, you only have to call the *Dispatch* function with it, you can add the necessary payload with the *With* function of the action.
 ```go
 ...
 	store.Dispatch(actions.Increment.With(1))
 	fmt.Printf("current state: '%v'\n", store.GetState())
 	// output:
-	// current state: '1'
+	//current state: 'map[counter:1]'
 ...
 ```
 To subscribe to state transitions you can use *Subscribe(fn \*func())* function, a pointer to a function is necessary, so a variable must be defined that points to the subscription function and then uses the variable pointer as parameter.
@@ -140,7 +140,7 @@ To subscribe to state transitions you can use *Subscribe(fn \*func())* function,
 	store.Subscribe(&globalSubscription)
 	store.Dispatch(actions.Decrement.With(1))
 	// output:
-	// globalSubscription - state changed, current state: '0'
+	//globalSubscription - state changed, current state: 'map[counter:0]'
 ...
 ```
 To unsubscribe from status changes you can use *UnSubscribe(fn \*func())* function, it is necessary to use the same variable pointer as parameter.
@@ -149,7 +149,7 @@ To unsubscribe from status changes you can use *UnSubscribe(fn \*func())* functi
 	store.UnSubscribe(&globalSubscription)
 ...
 ```
-To add more *Reducer* to the *Store* you can use *AddReducer* function
+To add another *Reducer* to the *Store* you can use *AddReducer* function
 ```go
 ...
     counter2Actions := &CounterActions{}
@@ -173,7 +173,7 @@ To add more *Reducer* to the *Store* you can use *AddReducer* function
 
 	fmt.Printf("current state: '%v'\n", store.GetState())
 	// output:
-	//current state: '[0 10 100]'
+	//current state: 'map[counter:0 counter2:10 counter3:100]'
 
 	store.Dispatch(actions.Increment.With(1))
 	store.Dispatch(actions2.Increment.With(1))
@@ -181,7 +181,7 @@ To add more *Reducer* to the *Store* you can use *AddReducer* function
 
 	fmt.Printf("current state: '%v'\n", store.GetState())
 	// output:
-	//current state: '[1 11 101]'
+	//current state: 'map[counter:1 counter2:11 counter3:101]'
 ...
 ```
 To remove a *Reducer* to the *Store* you can use *RemoveReducer* function
@@ -197,14 +197,14 @@ To remove a *Reducer* to the *Store* you can use *RemoveReducer* function
 		store.Dispatch(counter3Actions.Increment.With(1))
 	}()
 	// output:
-	//There is not any Reducers that execute this action!
+	//There are not any Reducers that execute this action!
 
 	fmt.Printf("current state: '%v'\n", store.GetState())
 	// output:
-	//current state: '[1 11 101]'
+	//current state: 'map[counter:1 counter2:11 counter3:101]'
 ...
 ```
-When you remove a *BusinessParam* from the *Store*, only the business logic and the actions related to it are deleted, the part of the state array that transited will remain in its last state, since deleting a reducer should not change the global state.
+When you remove a *Reducer* from the *Store*, only the business logic and the actions related to it are deleted, the part of the state array that transitioned will remain in its last state, since deleting a reducer should not change the global state.
 
 To get a part of the state array you can use the function *GetStateOf(selector)*, you need know the selector defined in the *BusinessParam*.
 
@@ -298,12 +298,12 @@ func main() {
 
 	fmt.Printf("current state: '%v'\n", store.GetState())
 	// output:
-	// current state: '0'
+	//current state: 'map[counter:0]'
 
 	store.Dispatch(counterActions.Increment.With(1))
 	fmt.Printf("current state: '%v'\n", store.GetState())
 	// output:
-	// current state: '1'
+	//current state: 'map[counter:1]'
 
 	globalSubscription := func() {
 		fmt.Printf("globalSubscription - state changed, current state: '%v'\n", store.GetState())
@@ -311,7 +311,7 @@ func main() {
 	store.Subscribe(&globalSubscription)
 	store.Dispatch(counterActions.Decrement.With(1))
 	// output:
-	// globalSubscription - state changed, current state: '0'
+	//	//globalSubscription - state changed, current state: 'map[counter:0]'
 
 	store.UnSubscribe(&globalSubscription)
 
@@ -335,7 +335,7 @@ func main() {
 
 	fmt.Printf("current state: '%v'\n", store.GetState())
 	// output:
-	// current state: '0'
+	//current state: 'map[counter:0 counter2:10 counter3:100]'
 
 	store.Dispatch(counterActions.Increment.With(1))
 	store.Dispatch(counter2Actions.Increment.With(1))
@@ -343,7 +343,7 @@ func main() {
 
 	fmt.Printf("current state: '%v'\n", store.GetState())
 	// output:
-	//current state: '[1 11 101]'
+	//current state: 'map[counter:1 counter2:11 counter3:101]'
 
 	store.RemoveReducer("counter3")
 	func() {
@@ -355,11 +355,11 @@ func main() {
 		store.Dispatch(counter3Actions.Increment.With(1))
 	}()
 	// output:
-	//There is not any Reducers that execute this action!
+	//There are not any Reducers that execute this action!
 
 	fmt.Printf("current state: '%v'\n", store.GetState())
 	// output:
-	//current state: '[1 11 101]'
+	//current state: 'map[counter:1 counter2:11 counter3:101]'
 
 	fmt.Printf("current state counter: '%v'\n", store.GetStateOf("counter"))
 	fmt.Printf("current state counter2: '%v'\n", store.GetStateOf("counter2"))
@@ -399,5 +399,6 @@ func main() {
 	//current state counter: '6'
 
 }
+
 ```
 
