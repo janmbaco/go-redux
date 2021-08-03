@@ -1,3 +1,3 @@
 package redux
 
-type Reducer func(state interface{}, action Action) interface{}
+type Reducer *func(state interface{}, action Action) interface{}

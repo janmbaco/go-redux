@@ -2,10 +2,10 @@ package redux
 
 import (
 	"fmt"
+	"github.com/janmbaco/go-infrastructure/errors"
+	"github.com/janmbaco/go-infrastructure/errors/errorschecker"
 	"reflect"
 	"strings"
-
-	"github.com/janmbaco/go-infrastructure/errorhandler"
 )
 
 type ActionsObject interface {
@@ -23,13 +23,10 @@ type actionObject struct {
 	nameByAction map[Action]string
 }
 
-func NewActionsObject(object interface{}) ActionsObject {
-	errorhandler.CheckNilParameter(map[string]interface{}{"object": object})
-	if object == nil {
-		panic("The object parameter can`t be nil!")
-	}
+func NewActionsObject(catcher errors.ErrorCatcher, actions interface{}) ActionsObject {
+	errorschecker.CheckNilParameter(map[string]interface{}{"actions": actions})
 	result := &actionObject{
-		actions:      getActionsIn(object),
+		actions:      getActionsIn(catcher, actions),
 		actionsNames: make([]string, 0),
 		actionByName: make(map[string]Action),
 		nameByAction: make(map[Action]string),
@@ -42,33 +39,33 @@ func NewActionsObject(object interface{}) ActionsObject {
 	return result
 }
 
-func (actionObject *actionObject) GetActions() []Action {
-	return actionObject.actions
+func (ao *actionObject) GetActions() []Action {
+	return ao.actions
 }
 
-func (actionObject *actionObject) Contains(action Action) bool {
-	_, ok := actionObject.nameByAction[action]
+func (ao *actionObject) Contains(action Action) bool {
+	_, ok := ao.nameByAction[action]
 	return ok
 }
 
-func (actionObject *actionObject) GetActionsNames() []string {
-	return actionObject.actionsNames
+func (ao *actionObject) GetActionsNames() []string {
+	return ao.actionsNames
 }
 
-func (actionObject *actionObject) ContainsByName(actionName string) bool {
-	_, ok := actionObject.actionByName[actionName]
+func (ao *actionObject) ContainsByName(actionName string) bool {
+	_, ok := ao.actionByName[actionName]
 	return ok
 }
 
-func (actionObject *actionObject) GetActionByName(name string) Action {
-	return actionObject.actionByName[name]
+func (ao *actionObject) GetActionByName(name string) Action {
+	return ao.actionByName[name]
 }
 
-func (actionObject *actionObject) GetNameByAction(action Action) string {
-	return actionObject.nameByAction[action]
+func (ao *actionObject) GetNameByAction(action Action) string {
+	return ao.nameByAction[action]
 }
 
-func getActionsIn(object interface{}) []Action {
+func getActionsIn(catcher errors.ErrorCatcher, object interface{}) []Action {
 	result := make([]Action, 0)
 	rv := reflect.Indirect(reflect.ValueOf(object))
 	rt := rv.Type()
@@ -77,7 +74,7 @@ func getActionsIn(object interface{}) []Action {
 	for i := 0; i < rt.NumField(); i++ {
 		if rt.Field(i).Type.Implements(actionType) {
 			if rv.Field(i).IsNil() {
-				errorhandler.TryCatchError(func() {
+				catcher.TryCatchError(func() {
 					rv.Field(i).Set(reflect.ValueOf(&action{name: rt.Field(i).Name}))
 					result = append(result, rv.Field(i).Elem().Interface().(Action))
 				}, func(err error) {

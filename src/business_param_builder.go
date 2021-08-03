@@ -2,31 +2,53 @@ package redux
 
 import (
 	"fmt"
+	"github.com/janmbaco/go-infrastructure/dependencyinjection"
 	"reflect"
 	"strconv"
 	"strings"
 
-	"github.com/janmbaco/go-infrastructure/errorhandler"
+	"github.com/janmbaco/go-infrastructure/errors/errorschecker"
 	"github.com/janmbaco/go-infrastructure/logs"
 )
 
+type BusinesParamBuilder interface {
+	SetInitialState(interface{}) BusinesParamBuilder
+	SetActions(interface{}) BusinesParamBuilder
+	SetSelector(selector string) BusinesParamBuilder
+	On(action Action, function interface{}) BusinesParamBuilder
+	SetActionsLogicByObject(object interface{}) BusinesParamBuilder
+	GetBusinessParam() BusinessParam
+}
+
 type businessParamBuilder struct {
+	logger        logs.Logger
+	resolver      dependencyinjection.Resolver
 	initialState  interface{}
 	selector      string
 	actionsObject ActionsObject
-	blf           map[Action]reflect.Value //business logic funcionality
+	blf           map[Action]reflect.Value // business logic funcionality
+}
+type redueActions struct {
+	blf map[Action]reflect.Value
 }
 
-func NewBusinessParamBuilder(initialState interface{}, actions interface{}) *businessParamBuilder {
-	errorhandler.CheckNilParameter(map[string]interface{}{"initialState": initialState, "actionsObject": actions})
-
-	return &businessParamBuilder{
-		initialState:  initialState,
-		actionsObject: NewActionsObject(actions),
-		blf:           make(map[Action]reflect.Value)}
+func NewBusinessParamBuilder(logger logs.Logger, resolver dependencyinjection.Resolver) BusinesParamBuilder {
+	errorschecker.CheckNilParameter(map[string]interface{}{"logger": logger, "resolver": resolver})
+	return &businessParamBuilder{blf: make(map[Action]reflect.Value), logger: logger, resolver: resolver}
 }
 
-func (builder *businessParamBuilder) SetSelector(selector string) *businessParamBuilder {
+func (builder *businessParamBuilder) SetInitialState(initialState interface{}) BusinesParamBuilder {
+	builder.initialState = initialState
+	return builder
+}
+
+func (builder *businessParamBuilder) SetActions(actions interface{}) BusinesParamBuilder {
+	errorschecker.CheckNilParameter(map[string]interface{}{"actions": actions})
+	builder.actionsObject = builder.resolver.Type(new(ActionsObject), map[string]interface{}{"actions": actions}).(ActionsObject)
+	return builder
+}
+
+func (builder *businessParamBuilder) SetSelector(selector string) BusinesParamBuilder {
 	if selector == "" {
 		panic("The selector can not be string empty!")
 	}
@@ -35,8 +57,8 @@ func (builder *businessParamBuilder) SetSelector(selector string) *businessParam
 	return builder
 }
 
-func (builder *businessParamBuilder) On(action Action, function interface{}) *businessParamBuilder {
-	errorhandler.CheckNilParameter(map[string]interface{}{"action": action, "function": function})
+func (builder *businessParamBuilder) On(action Action, function interface{}) BusinesParamBuilder {
+	errorschecker.CheckNilParameter(map[string]interface{}{"action": action, "function": function})
 
 	if !builder.actionsObject.Contains(action) {
 		panic("This action doesn`t belong to this BusinesObject!")
@@ -53,7 +75,7 @@ func (builder *businessParamBuilder) On(action Action, function interface{}) *bu
 	}
 
 	if typeOfState := reflect.TypeOf(builder.initialState); functionType.NumIn() < 1 || functionType.NumIn() > 2 || functionType.NumOut() != 1 || functionType.In(0) != functionType.Out(0) || functionType.In(0) != typeOfState {
-		panic(fmt.Sprintf("The function for action `%v` must to have the contract func(state `%v`, payload *any) `%v`", action.GetType(), typeOfState.Name(), typeOfState.Name()))
+		panic(fmt.Errorf("the function for action `%v` must to have the contract func(state `%v`, payload *any) `%v`", action.GetType(), typeOfState.Name(), typeOfState.Name()))
 	}
 
 	if functionType.NumIn() == 2 {
@@ -64,8 +86,8 @@ func (builder *businessParamBuilder) On(action Action, function interface{}) *bu
 	return builder
 }
 
-func (builder *businessParamBuilder) SetActionsLogicByObject(object interface{}) *businessParamBuilder {
-	errorhandler.CheckNilParameter(map[string]interface{}{"object": object})
+func (builder *businessParamBuilder) SetActionsLogicByObject(object interface{}) BusinesParamBuilder {
+	errorschecker.CheckNilParameter(map[string]interface{}{"object": object})
 	typeOfState := reflect.TypeOf(builder.initialState)
 	if reflect.TypeOf(object) == typeOfState {
 		panic("You cannot create the logic of the actionsObject with the same type as the state!")
@@ -88,15 +110,18 @@ func (builder *businessParamBuilder) SetActionsLogicByObject(object interface{})
 				}
 				builder.blf[action] = rv.Method(i)
 			} else {
-				logs.Log.Warning(fmt.Sprintf("The func`%v` in the object `%v` has not a action asociated in the ActionsObject! ActionObject:`%v`", m.Name, rt.String(), builder.actionsObject.GetActionsNames()))
+				builder.logger.Warning(fmt.Sprintf("The func`%v` in the object `%v` has not a action asociated in the ActionsObject! ActionObject:`%v`", m.Name, rt.String(), builder.actionsObject.GetActionsNames()))
 			}
-
 		}
 	}
 	return builder
 }
 
 func (builder *businessParamBuilder) GetBusinessParam() BusinessParam {
+
+	if builder.selector == "" {
+		panic("The selector can not be string empty!")
+	}
 
 	if builder.actionsObject == nil {
 		panic("There isn´t any ActionsObject to load to the BusinessParam!")
@@ -111,33 +136,47 @@ func (builder *businessParamBuilder) GetBusinessParam() BusinessParam {
 	if panicMessage.Len() > 0 {
 		panic(panicMessage.String())
 	}
-
-	reducer := func(state interface{}, action Action) interface{} {
-
-		function, exists := builder.blf[action]
-		if !exists {
-			panic("The action is not located in the reducer function!")
-		}
-		var result interface{}
-
-		if typeOfState := reflect.TypeOf(state); (function.Type().NumIn() < 3 && function.Type().In(0) != typeOfState) || function.Type().NumIn() == 1 {
-			result = function.Call([]reflect.Value{
-				reflect.ValueOf(state),
-			})[0].Interface()
-		} else {
-			result = function.Call([]reflect.Value{
-				reflect.ValueOf(state),
-				action.GetPayload(),
-			})[0].Interface()
-		}
-
-		return result
-
+	reducerActions := &redueActions{blf: make(map[Action]reflect.Value)}
+	for key, value := range builder.blf {
+		reducerActions.blf[key] = value
 	}
-
+	reducer := reducerActions.Reducer
 	if builder.selector == "" {
 		builder.selector = strconv.Itoa(int(reflect.ValueOf(builder.initialState).Pointer()))
 	}
 
-	return NewBusinessParam(builder.initialState, reducer, builder.actionsObject, builder.selector)
+	businessParam := builder.resolver.Type(new(BusinessParam), map[string]interface{}{
+		"initialState":  builder.initialState,
+		"reducer":       &reducer,
+		"actionsObject": builder.actionsObject,
+		"selector":      builder.selector,
+	}).(BusinessParam)
+
+	builder.initialState = nil
+	builder.actionsObject = nil
+	builder.selector = ""
+	for k := range builder.blf {
+		delete(builder.blf, k)
+	}
+
+	return businessParam
+}
+
+func (ra *redueActions) Reducer(state interface{}, action Action) interface{} {
+	function, exists := ra.blf[action]
+	if !exists {
+		panic("The action is not located in the reducer function!")
+	}
+	var result interface{}
+	if typeOfState := reflect.TypeOf(state); (function.Type().NumIn() < 3 && function.Type().In(0) != typeOfState) || function.Type().NumIn() == 1 {
+		result = function.Call([]reflect.Value{
+			reflect.ValueOf(state),
+		})[0].Interface()
+	} else {
+		result = function.Call([]reflect.Value{
+			reflect.ValueOf(state),
+			action.GetPayload(),
+		})[0].Interface()
+	}
+	return result
 }
