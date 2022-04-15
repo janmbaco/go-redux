@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/janmbaco/go-infrastructure/dependencyinjection"
-	"github.com/janmbaco/go-infrastructure/errors"
-	"github.com/janmbaco/go-infrastructure/logs"
+
 	"github.com/janmbaco/go-redux/src"
+	"github.com/janmbaco/go-redux/src/ioc/resolver"
+	errorsResolver "github.com/janmbaco/go-infrastructure/errors/ioc/resolver"
+	
 )
 
 type CounterActions struct {
@@ -25,15 +26,11 @@ func (r *DecrementLogic) Decrement(state int, payload int) int {
 }
 
 func main() {
-
-	container := dependencyinjection.NewContainer()
-	facade(container.Register())
-
 	counterActions := &CounterActions{}
 
-	store := container.Resolver().Type(new(redux.Store), nil).(redux.Store)
+	store := resolver.GetStore()
 
-	builder := container.Resolver().Type(new(redux.BusinesParamBuilder), nil).(redux.BusinesParamBuilder)
+	builder := resolver.GetBusinessParamBuilder()
 	builder.SetInitialState(0)
 	builder.SetActions(counterActions)
 	builder.On(counterActions.Increment, Increment)
@@ -98,8 +95,8 @@ func main() {
 	// current state: 'map[counter:1 counter2:11 counter3:101]'
 
 	store.RemoveReducer("counter3")
-	errorManager := container.Resolver().Type(new(errors.ErrorManager), nil).(errors.ErrorManager)
-	errorManager.On(&redux.StoreError{}, func(err error) {
+	errorManager := errorsResolver.GetErrorManager()
+	errorManager.On(new(redux.StoreError), func(err error) {
 		// deactivation of the store's own errors so that only an error message appears
 		// see redux.StoreError
 		fmt.Printf(err.Error() + "\n")
@@ -148,17 +145,4 @@ func main() {
 	fmt.Printf("current state counter: '%v'\n", store.GetStateOf("counter"))
 	// output:
 	// current state counter: '6'
-}
-
-func facade(register dependencyinjection.Register) {
-	register.AsSingleton(new(logs.Logger), logs.NewLogger, nil)
-	register.Bind(new(logs.ErrorLogger), new(logs.Logger))
-	register.AsSingleton(new(errors.ErrorCatcher), errors.NewErrorCatcher, nil)
-	register.AsSingleton(new(errors.ErrorManager), errors.NewErrorManager, nil)
-	register.Bind(new(errors.ErrorCallbacks), new(errors.ErrorManager))
-	register.AsSingleton(new(errors.ErrorThrower), errors.NewErrorThrower, nil)
-	register.AsType(new(redux.ActionsObject), redux.NewActionsObject, map[uint]string{1: "actions"})
-	register.AsType(new(redux.BusinessParam), redux.NewBusinessParam, map[uint]string{0: "initialState", 1: "reducer", 2: "actionsObject", 3: "selector"})
-	register.AsSingleton(new(redux.BusinesParamBuilder), redux.NewBusinessParamBuilder, nil)
-	register.AsSingleton(new(redux.Store), redux.NewStore, nil)
 }

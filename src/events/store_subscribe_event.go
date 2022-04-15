@@ -13,7 +13,6 @@ func (*StoreSubscribeEvent) IsParallelPropagation() bool {
 
 func (*StoreSubscribeEvent) GetTypeOfFunc() reflect.Type {
 	return reflect.TypeOf(func() {})
-
 }
 
 func (*StoreSubscribeEvent) StopPropagation() bool {

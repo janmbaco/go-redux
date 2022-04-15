@@ -2,7 +2,6 @@ package redux
 
 import (
 	"fmt"
-	"github.com/janmbaco/go-infrastructure/dependencyinjection"
 	"reflect"
 	"strconv"
 	"strings"
@@ -22,9 +21,10 @@ type BusinesParamBuilder interface {
 
 type businessParamBuilder struct {
 	logger        logs.Logger
-	resolver      dependencyinjection.Resolver
 	initialState  interface{}
 	selector      string
+	businessParamFactory BusinessParamFactory
+	actionsObjectFactory ActionsObjectFactory
 	actionsObject ActionsObject
 	blf           map[Action]reflect.Value // business logic funcionality
 }
@@ -32,9 +32,9 @@ type redueActions struct {
 	blf map[Action]reflect.Value
 }
 
-func NewBusinessParamBuilder(logger logs.Logger, resolver dependencyinjection.Resolver) BusinesParamBuilder {
-	errorschecker.CheckNilParameter(map[string]interface{}{"logger": logger, "resolver": resolver})
-	return &businessParamBuilder{blf: make(map[Action]reflect.Value), logger: logger, resolver: resolver}
+func NewBusinessParamBuilder(logger logs.Logger, aactionsObjectFactory ActionsObjectFactory, businessParamFactory BusinessParamFactory) BusinesParamBuilder {
+	errorschecker.CheckNilParameter(map[string]interface{}{"logger": logger, "aactionsObjectFactory": aactionsObjectFactory, "businessParamFactory":businessParamFactory})
+	return &businessParamBuilder{blf: make(map[Action]reflect.Value), logger: logger, actionsObjectFactory: aactionsObjectFactory, businessParamFactory: businessParamFactory}
 }
 
 func (builder *businessParamBuilder) SetInitialState(initialState interface{}) BusinesParamBuilder {
@@ -44,7 +44,7 @@ func (builder *businessParamBuilder) SetInitialState(initialState interface{}) B
 
 func (builder *businessParamBuilder) SetActions(actions interface{}) BusinesParamBuilder {
 	errorschecker.CheckNilParameter(map[string]interface{}{"actions": actions})
-	builder.actionsObject = builder.resolver.Type(new(ActionsObject), map[string]interface{}{"actions": actions}).(ActionsObject)
+	builder.actionsObject = builder.actionsObjectFactory.Create(actions)
 	return builder
 }
 
@@ -145,12 +145,13 @@ func (builder *businessParamBuilder) GetBusinessParam() BusinessParam {
 		builder.selector = strconv.Itoa(int(reflect.ValueOf(builder.initialState).Pointer()))
 	}
 
-	businessParam := builder.resolver.Type(new(BusinessParam), map[string]interface{}{
-		"initialState":  builder.initialState,
-		"reducer":       &reducer,
-		"actionsObject": builder.actionsObject,
-		"selector":      builder.selector,
-	}).(BusinessParam)
+	businessParam := builder.businessParamFactory.Create(
+		BusinessParamFactoryParamter{
+			builder.initialState,
+			&reducer,
+			builder.actionsObject,
+			builder.selector,
+	})
 
 	builder.initialState = nil
 	builder.actionsObject = nil

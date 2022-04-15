@@ -16,7 +16,7 @@ type ActionsObject interface {
 	GetActionByName(name string) Action
 }
 
-type actionObject struct {
+type actionsObject struct {
 	actions      []Action
 	actionsNames []string
 	actionByName map[string]Action
@@ -25,7 +25,7 @@ type actionObject struct {
 
 func NewActionsObject(catcher errors.ErrorCatcher, actions interface{}) ActionsObject {
 	errorschecker.CheckNilParameter(map[string]interface{}{"actions": actions})
-	result := &actionObject{
+	result := &actionsObject{
 		actions:      getActionsIn(catcher, actions),
 		actionsNames: make([]string, 0),
 		actionByName: make(map[string]Action),
@@ -39,29 +39,29 @@ func NewActionsObject(catcher errors.ErrorCatcher, actions interface{}) ActionsO
 	return result
 }
 
-func (ao *actionObject) GetActions() []Action {
+func (ao *actionsObject) GetActions() []Action {
 	return ao.actions
 }
 
-func (ao *actionObject) Contains(action Action) bool {
+func (ao *actionsObject) Contains(action Action) bool {
 	_, ok := ao.nameByAction[action]
 	return ok
 }
 
-func (ao *actionObject) GetActionsNames() []string {
+func (ao *actionsObject) GetActionsNames() []string {
 	return ao.actionsNames
 }
 
-func (ao *actionObject) ContainsByName(actionName string) bool {
+func (ao *actionsObject) ContainsByName(actionName string) bool {
 	_, ok := ao.actionByName[actionName]
 	return ok
 }
 
-func (ao *actionObject) GetActionByName(name string) Action {
+func (ao *actionsObject) GetActionByName(name string) Action {
 	return ao.actionByName[name]
 }
 
-func (ao *actionObject) GetNameByAction(action Action) string {
+func (ao *actionsObject) GetNameByAction(action Action) string {
 	return ao.nameByAction[action]
 }
 

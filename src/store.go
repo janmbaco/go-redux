@@ -2,6 +2,8 @@ package redux
 
 import (
 	"fmt"
+	"reflect"
+
 	"github.com/janmbaco/go-infrastructure/errors"
 	"github.com/janmbaco/go-infrastructure/errors/errorschecker"
 	"github.com/janmbaco/go-infrastructure/eventsmanager"
@@ -23,30 +25,28 @@ type Store interface {
 type store struct {
 	*events.StoreSubscribeEventHandler
 	errorDefer    errors.ErrorDefer
-	thrower       errors.ErrorThrower
-	catcher       errors.ErrorCatcher
 	publisher     eventsmanager.Publisher
 	reducers      map[string]Reducer
 	actionsObject map[string]ActionsObject
-	stateManagers map[string]*stateManager
+	stateManagements map[string]StateManagement
+	stateManagementFactory StateManagementFactory
 }
 
-func NewStore(thrower errors.ErrorThrower, catcher errors.ErrorCatcher) Store {
-	errorschecker.CheckNilParameter(map[string]interface{}{"thrower": thrower, "catcher": catcher})
-	subscriptions := eventsmanager.NewSubscriptions(thrower)
+func NewStore(errorDefer errors.ErrorDefer, subscriptions eventsmanager.Subscriptions, publisher eventsmanager.Publisher, stateManagementFactory StateManagementFactory) Store {
+	errorschecker.CheckNilParameter(map[string]interface{}{"errorDefer": errorDefer, "subscriptions": subscriptions, "publisher": publisher, "stateManagementResolver":stateManagementFactory})
 	return &store{
 		StoreSubscribeEventHandler: events.NewStoreSubscribeEventHandler(subscriptions),
-		errorDefer:                 errors.NewErrorDefer(thrower, &storeErrorPipe{}),
+		errorDefer:                 errorDefer,
 		reducers:                   make(map[string]Reducer),
 		actionsObject:              make(map[string]ActionsObject),
-		stateManagers:              make(map[string]*stateManager),
-		catcher:                    catcher,
-		publisher:                  eventsmanager.NewPublisher(subscriptions, catcher),
+		stateManagements:           make(map[string]StateManagement),
+		publisher:                  publisher,
+		stateManagementFactory:    stateManagementFactory,
 	}
 }
 
 func (s *store) AddReducer(param BusinessParam) {
-	defer s.errorDefer.TryThrowError()
+	defer s.errorDefer.TryThrowError(s.errorPipe)
 	errorschecker.CheckNilParameter(map[string]interface{}{"param": param})
 
 	if _, ko := s.reducers[param.GetSelector()]; ko {
@@ -59,13 +59,13 @@ func (s *store) AddReducer(param BusinessParam) {
 	}
 	s.reducers[param.GetSelector()] = param.GetReducer()
 	s.actionsObject[param.GetSelector()] = param.GetActionsObject()
-	if _, contains := s.stateManagers[param.GetSelector()]; !contains {
-		s.stateManagers[param.GetSelector()] = newStateManager(param.GetInitialState(), param.GetSelector(), s.publisher, s.thrower, s.catcher)
+	if _, contains := s.stateManagements[param.GetSelector()]; !contains {
+		s.stateManagements[param.GetSelector()] = s.stateManagementFactory.Create(StateManagementFactoryParamter{param.GetInitialState(), param.GetSelector(), s.publisher})
 	}
 }
 
 func (s *store) RemoveReducer(selector string) {
-	defer s.errorDefer.TryThrowError()
+	defer s.errorDefer.TryThrowError(s.errorPipe)
 	checkSelector(selector)
 	s.checkStateManager(selector)
 	if _, ok := s.reducers[selector]; ok {
@@ -77,7 +77,7 @@ func (s *store) RemoveReducer(selector string) {
 }
 
 func (s *store) Dispatch(action Action) {
-	defer s.errorDefer.TryThrowError()
+	defer s.errorDefer.TryThrowError(s.errorPipe)
 	errorschecker.CheckNilParameter(map[string]interface{}{"action": action})
 	var selector string
 	for sel, actionObject := range s.actionsObject {
@@ -90,37 +90,37 @@ func (s *store) Dispatch(action Action) {
 		panic(newStoreError(AnyReducerForThisActionError, "There are not any Reducers that execute this action!"))
 	}
 
-	s.stateManagers[selector].SetState((*s.reducers[selector])(s.stateManagers[selector].GetState(), action))
+	s.stateManagements[selector].SetState((*s.reducers[selector])(s.stateManagements[selector].GetState(), action))
 }
 
 func (s *store) GetState() interface{} {
-	defer s.errorDefer.TryThrowError()
+	defer s.errorDefer.TryThrowError(s.errorPipe)
 	globalState := make(map[string]interface{})
-	for selector, stateManager := range s.stateManagers {
+	for selector, stateManager := range s.stateManagements {
 		globalState[selector] = stateManager.GetState()
 	}
 	return globalState
 }
 
 func (s *store) GetStateOf(selector string) interface{} {
-	defer s.errorDefer.TryThrowError()
+	defer s.errorDefer.TryThrowError(s.errorPipe)
 	checkSelector(selector)
 	s.checkStateManager(selector)
-	return s.stateManagers[selector].GetState()
+	return s.stateManagements[selector].GetState()
 }
 
 func (s *store) SubscribeTo(selector string, fn *func(interface{})) {
-	defer s.errorDefer.TryThrowError()
+	defer s.errorDefer.TryThrowError(s.errorPipe)
 	checkSelector(selector)
 	s.checkStateManager(selector)
-	s.stateManagers[selector].Subscribe(fn)
+	s.stateManagements[selector].Subscribe(fn)
 }
 
 func (s *store) UnsubscribeFrom(selector string, fn *func(interface{})) {
-	defer s.errorDefer.TryThrowError()
+	defer s.errorDefer.TryThrowError(s.errorPipe)
 	checkSelector(selector)
 	s.checkStateManager(selector)
-	s.stateManagers[selector].UnSubscribe(fn)
+	s.stateManagements[selector].UnSubscribe(fn)
 }
 
 func checkSelector(selector string) {
@@ -129,7 +129,23 @@ func checkSelector(selector string) {
 	}
 }
 func (s *store) checkStateManager(selector string) {
-	if _, ok := s.stateManagers[selector]; !ok {
+	if _, ok := s.stateManagements[selector]; !ok {
 		panic(newStoreError(AnyStateBySelectorError, fmt.Sprintf("There is not any state with the selector: '%v'!", selector)))
 	}
+}
+
+func (s *store) errorPipe(err error) error {
+	resultError := err
+
+	if errType := reflect.Indirect(reflect.ValueOf(err)).Type(); !errType.Implements(reflect.TypeOf((*StoreError)(nil)).Elem()) {
+		errorType := UnexpectedStoreError
+		resultError = &storeError{
+			CustomizableError: errors.CustomizableError{
+				Message:       err.Error(),
+				InternalError: err,
+			},
+			ErrorType: errorType,
+		}
+	}
+	return resultError
 }

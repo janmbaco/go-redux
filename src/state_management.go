@@ -1,15 +1,21 @@
 package redux
 
 import (
-	"github.com/janmbaco/copier"
-	"github.com/janmbaco/go-infrastructure/errors"
+	"reflect"
+
 	"github.com/janmbaco/go-infrastructure/errors/errorschecker"
 	"github.com/janmbaco/go-infrastructure/eventsmanager"
 	"github.com/janmbaco/go-redux/src/events"
-	"reflect"
+	"github.com/jinzhu/copier"
 )
+type StateManagement interface{
+	Subscribe(subscription *func(state interface{}))
+	UnSubscribe(subscription *func(state interface{}))
+	GetState() interface{}
+	SetState(newState interface{})
+}
 
-type stateManager struct {
+type stateManagement struct {
 	*events.SelectorSubscribeEventHandler
 	storePublisher    eventsmanager.Publisher
 	selectorPublisher eventsmanager.Publisher
@@ -19,24 +25,23 @@ type stateManager struct {
 	selector          string
 }
 
-func newStateManager(initialState interface{}, selector string, storePublisher eventsmanager.Publisher, thrower errors.ErrorThrower, catcher errors.ErrorCatcher) *stateManager {
-	errorschecker.CheckNilParameter(map[string]interface{}{"publisher": storePublisher, "initialState": initialState})
+func NewStateManager(initialState interface{}, selector string, storePublisher eventsmanager.Publisher, subscriptions eventsmanager.Subscriptions, selectorPublisher eventsmanager.Publisher) StateManagement {
+	errorschecker.CheckNilParameter(map[string]interface{}{"initialState": initialState, "selector": selector, "storePublisher": storePublisher, "subscriptions": subscriptions, "selectorPublisher": selectorPublisher})
 	if selector == "" {
 		panic("The selector can not be string empty!")
 	}
-	subscriptions := eventsmanager.NewSubscriptions(thrower)
-	return &stateManager{
+	return &stateManagement{
 		SelectorSubscribeEventHandler: events.NewSelectorSubscribeEventHandler(subscriptions),
 		storePublisher:                storePublisher,
 		state:                         reflect.ValueOf(initialState),
 		typ:                           reflect.TypeOf(initialState),
-		selectorPublisher:             eventsmanager.NewPublisher(subscriptions, catcher),
+		selectorPublisher:             selectorPublisher,
 		selector:                      selector,
 	}
 
 }
 
-func (s *stateManager) GetState() interface{} {
+func (s *stateManagement) GetState() interface{} {
 	newState := s.state
 	if s.typ.Kind() == reflect.Ptr {
 		newState = reflect.New(s.typ.Elem())
@@ -45,7 +50,7 @@ func (s *stateManager) GetState() interface{} {
 	return newState.Interface()
 }
 
-func (s *stateManager) SetState(newState interface{}) {
+func (s *stateManagement) SetState(newState interface{}) {
 	if !reflect.DeepEqual(newState, s.state.Interface()) {
 		s.state = reflect.ValueOf(newState)
 		s.storePublisher.Publish(&events.StoreSubscribeEvent{})
