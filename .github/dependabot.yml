@@ -1,0 +1,51 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: gomod
+    directory: /examples/todo-ddd
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: gomod
+    directory: /examples/game-server
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: gomod
+    directory: /examples/event-sourced-wallet
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: gomod
+    directory: /examples/workflow-employee-onboarding
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: gomod
+    directory: /examples/saga-order-fulfillment/orchestrator
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: gomod
+    directory: /examples/saga-order-fulfillment/services/inventory-service
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: gomod
+    directory: /examples/saga-order-fulfillment/services/payment-service
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: gomod
+    directory: /examples/saga-order-fulfillment/services/shipping-service
+    schedule:
+      interval: weekly

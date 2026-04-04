@@ -1,0 +1,53 @@
+name: Release Validation
+
+on:
+  push:
+    tags:
+      - "v2.*"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+            examples/**/go.sum
+
+      - name: Check formatting
+        run: test -z "$(gofmt -l .)"
+
+      - name: Test root module
+        run: go test ./...
+
+      - name: Test example modules
+        run: |
+          for module in \
+            examples/todo-ddd \
+            examples/game-server \
+            examples/event-sourced-wallet \
+            examples/workflow-employee-onboarding \
+            examples/saga-order-fulfillment/orchestrator \
+            examples/saga-order-fulfillment/services/inventory-service \
+            examples/saga-order-fulfillment/services/payment-service \
+            examples/saga-order-fulfillment/services/shipping-service
+          do
+            (cd "$module" && go test ./...)
+          done
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Run govulncheck
+        run: govulncheck ./...

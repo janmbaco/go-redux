@@ -1,0 +1,10 @@
+{
+  "port": ":8083",
+  "database": {
+    "host": "shipping-db",
+    "port": "5432",
+    "user": "shipping",
+    "password": "set-in-local-env-or-untracked-config",
+    "name": "shippingdb"
+  }
+}
