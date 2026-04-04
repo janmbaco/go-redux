@@ -1,0 +1,138 @@
+services:
+  # PostgreSQL Databases
+  payment-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: paymentdb
+      POSTGRES_USER: payment
+      POSTGRES_PASSWORD: ${PAYMENT_DB_PASSWORD:?set PAYMENT_DB_PASSWORD in examples/saga-order-fulfillment/.env}
+    volumes:
+      - payment-data:/var/lib/postgresql/data
+    networks:
+      - saga-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U payment"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  inventory-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: inventorydb
+      POSTGRES_USER: inventory
+      POSTGRES_PASSWORD: ${INVENTORY_DB_PASSWORD:?set INVENTORY_DB_PASSWORD in examples/saga-order-fulfillment/.env}
+    volumes:
+      - inventory-data:/var/lib/postgresql/data
+    networks:
+      - saga-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inventory"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  shipping-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: shippingdb
+      POSTGRES_USER: shipping
+      POSTGRES_PASSWORD: ${SHIPPING_DB_PASSWORD:?set SHIPPING_DB_PASSWORD in examples/saga-order-fulfillment/.env}
+    volumes:
+      - shipping-data:/var/lib/postgresql/data
+    networks:
+      - saga-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shipping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Microservices
+  payment-service:
+    build:
+      context: ../..
+      dockerfile: examples/saga-order-fulfillment/services/payment-service/Dockerfile
+    environment:
+      DB_HOST: payment-db
+      DB_PORT: "5432"
+      DB_USER: payment
+      DB_PASSWORD: ${PAYMENT_DB_PASSWORD:?set PAYMENT_DB_PASSWORD in examples/saga-order-fulfillment/.env}
+      DB_NAME: paymentdb
+      PORT: "8081"
+    ports:
+      - "8081:8081"
+    depends_on:
+      payment-db:
+        condition: service_healthy
+    networks:
+      - saga-network
+    restart: unless-stopped
+
+  inventory-service:
+    build:
+      context: ../..
+      dockerfile: examples/saga-order-fulfillment/services/inventory-service/Dockerfile
+    environment:
+      DB_HOST: inventory-db
+      DB_PORT: "5432"
+      DB_USER: inventory
+      DB_PASSWORD: ${INVENTORY_DB_PASSWORD:?set INVENTORY_DB_PASSWORD in examples/saga-order-fulfillment/.env}
+      DB_NAME: inventorydb
+      PORT: "8082"
+    ports:
+      - "8082:8082"
+    depends_on:
+      inventory-db:
+        condition: service_healthy
+    networks:
+      - saga-network
+    restart: unless-stopped
+
+  shipping-service:
+    build:
+      context: ../..
+      dockerfile: examples/saga-order-fulfillment/services/shipping-service/Dockerfile
+    environment:
+      DB_HOST: shipping-db
+      DB_PORT: "5432"
+      DB_USER: shipping
+      DB_PASSWORD: ${SHIPPING_DB_PASSWORD:?set SHIPPING_DB_PASSWORD in examples/saga-order-fulfillment/.env}
+      DB_NAME: shippingdb
+      PORT: "8083"
+    ports:
+      - "8083:8083"
+    depends_on:
+      shipping-db:
+        condition: service_healthy
+    networks:
+      - saga-network
+    restart: unless-stopped
+
+  # Orchestrator
+  orchestrator:
+    build:
+      context: ../..
+      dockerfile: examples/saga-order-fulfillment/orchestrator/Dockerfile
+    environment:
+      PAYMENT_URL: "http://payment-service:8081"
+      INVENTORY_URL: "http://inventory-service:8082"
+      SHIPPING_URL: "http://shipping-service:8083"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - payment-service
+      - inventory-service
+      - shipping-service
+    networks:
+      - saga-network
+    restart: unless-stopped
+
+networks:
+  saga-network:
+    driver: bridge
+
+volumes:
+  payment-data:
+  inventory-data:
+  shipping-data:

@@ -1,0 +1,10 @@
+{
+  "port": ":8082",
+  "database": {
+    "host": "inventory-db",
+    "port": "5432",
+    "user": "inventory",
+    "password": "set-in-local-env-or-untracked-config",
+    "name": "inventorydb"
+  }
+}

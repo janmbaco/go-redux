@@ -1,0 +1,10 @@
+{
+  "port": ":8081",
+  "database": {
+    "host": "payment-db",
+    "port": "5432",
+    "user": "payment",
+    "password": "set-in-local-env-or-untracked-config",
+    "name": "paymentdb"
+  }
+}

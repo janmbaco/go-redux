@@ -4,14 +4,38 @@
 *.dll
 *.so
 *.dylib
+bin/
+dist/
 
 # Test binary, built with `go test -c`
 *.test
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+coverage.out
+coverage.*
+
+# Local databases and runtime artifacts
+*.db
+*.sqlite
+*.sqlite3
+*.log
+
+# Local environment and secret material
+.env
+.env.*
+!.env.example
+*.local.json
+*.local.yaml
+*.local.yml
+*.override.yml
+*.override.yaml
+*.pem
+*.key
+*.crt
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
 /.idea/
-/go.sum
+/.vscode/
+.DS_Store

@@ -1,0 +1,8 @@
+{
+  "port": ":8080",
+  "services": {
+    "paymentUrl": "http://payment-service:8081",
+    "inventoryUrl": "http://inventory-service:8082",
+    "shippingUrl": "http://shipping-service:8083"
+  }
+}

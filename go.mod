@@ -1,8 +1,5 @@
-module github.com/janmbaco/go-redux
+module github.com/janmbaco/go-redux/v2
 
-go 1.15
+go 1.24.13
 
-require (
-	github.com/janmbaco/go-infrastructure v1.2.0
-	github.com/jinzhu/copier v0.3.5 
-)
+require github.com/janmbaco/go-infrastructure/v2 v2.1.4
