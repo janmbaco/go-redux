@@ -6,7 +6,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/janmbaco/go-infrastructure/v2 v2.1.4
 	github.com/janmbaco/go-redux/v2 v2.0.0
-	gorm.io/gorm v1.31.1
+	gorm.io/gorm v1.31.2
 )
 
 require (
