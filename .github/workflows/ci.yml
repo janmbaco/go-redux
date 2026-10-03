@@ -22,7 +22,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
+          go-version: '1.27.1'
           cache-dependency-path: |
             go.sum
             examples/**/go.sum
@@ -31,7 +31,7 @@ jobs:
         run: test -z "$(gofmt -l .)"
 
       - name: Test root module
-        run: go test ./...
+        run: go test -race ./...
 
       - name: Vet root module
         run: go vet ./...
@@ -63,13 +63,19 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
+          go-version: '1.27.1'
           cache-dependency-path: |
             go.sum
             examples/**/go.sum
 
       - name: Test example module
-        run: go test ./...
+        run: go test -race ./...
+
+      - name: Vet and check example vulnerabilities
+        run: |
+          go vet ./...
+          go install golang.org/x/vuln/cmd/govulncheck@v1.8.0
+          govulncheck ./...
 
   vulncheck:
     runs-on: ubuntu-latest
@@ -84,11 +90,11 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
+          go-version: '1.27.1'
           cache-dependency-path: go.sum
 
       - name: Install govulncheck
-        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+        run: go install golang.org/x/vuln/cmd/govulncheck@v1.8.0
 
       - name: Run govulncheck
         run: govulncheck ./...

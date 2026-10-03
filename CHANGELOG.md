@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2026-10-03
+
+### Security and maintenance
+
+- Depend on published `go-infrastructure/v2` v2.2.0 in the library and all eight example modules.
+- Keep store, reducer, middleware and subscription APIs unchanged; no game-specific behavior is added.
+- Run race detection, vet and vulnerability checks for examples as well as the root module.
+- Require Go 1.26+ through the patched infrastructure dependency; use Go 1.27.1 in CI and example containers.
+
 ## [2.0.0] - 2024
 
 Complete rewrite with breaking changes for Go 1.24+ using generics, DDD, and Clean Architecture.
