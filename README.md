@@ -7,7 +7,7 @@ The project is aimed at server-side and backend use cases where state transition
 ## Status
 
 - Module path: `github.com/janmbaco/go-redux/v2`
-- Go version: `1.26+` (use a supported, patched toolchain; CI uses 1.27.1)
+- Go version: `1.26+` (use a supported, patched toolchain; root CI tests Go 1.26.11 and 1.27.4)
 - Integration point for dependency injection and infrastructure concerns: `github.com/janmbaco/go-infrastructure/v2`
 
 ## Installation

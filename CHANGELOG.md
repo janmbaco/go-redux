@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-11-21
+
+- Consume go-infrastructure v2.3.0 and refresh the persistence examples to GORM v1.31.2.
+- Exercise both supported Go lines in library CI and build the example containers with Go 1.27.4.
+
 ## [2.0.1] - 2026-10-03
 
 ### Security and maintenance
