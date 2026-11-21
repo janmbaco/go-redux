@@ -10,19 +10,25 @@ on:
 permissions:
   contents: read
 
+env:
+  GOTOOLCHAIN: local
+
 jobs:
   test-root:
+    strategy:
+      matrix:
+        go-version: ['1.26.11', '1.27.4']
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.27.1'
+          go-version: ${{ matrix.go-version }}
           cache-dependency-path: |
             go.sum
             examples/**/go.sum
@@ -58,12 +64,12 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.27.1'
+          go-version: '1.27.4'
           cache-dependency-path: |
             go.sum
             examples/**/go.sum
@@ -85,12 +91,12 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.27.1'
+          go-version: '1.27.4'
           cache-dependency-path: go.sum
 
       - name: Install govulncheck
