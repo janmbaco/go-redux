@@ -70,8 +70,8 @@ github.com/jackc/puddle/v2 v2.2.2 h1:PR8nw+E/1w0GLuRFSmiioY6UooMp6KJv0/61nB7icHo
 github.com/jackc/puddle/v2 v2.2.2/go.mod h1:vriiEXHvEE654aYKXXjOvZM39qJ0q+azkZFrfEOc3H4=
 github.com/janmbaco/copier v1.0.0 h1:7HRGN/1J97I7V5dBmZlFpoT+XkPqYEXrHsKFjHHZM1U=
 github.com/janmbaco/copier v1.0.0/go.mod h1:PmbuQgYf3AI6UDwdSPMV4yMLkWvLbs0MG+CBSvlFw0s=
-github.com/janmbaco/go-infrastructure/v2 v2.3.0 h1:VvoiDuNKuNkLs7in5Wv1ekyyOUgzHf4STbGL2C3bkTg=
-github.com/janmbaco/go-infrastructure/v2 v2.3.0/go.mod h1:l6bHKpyX+sg372xoD/BlRs4z0k6UFDEkEsMmKXrHNNw=
+github.com/janmbaco/go-infrastructure/v2 v2.3.2 h1:Wr2mgVjdc6gpNt8GIqp4Kd4VTJmOVTp/NJOzDESMl5E=
+github.com/janmbaco/go-infrastructure/v2 v2.3.2/go.mod h1:l6bHKpyX+sg372xoD/BlRs4z0k6UFDEkEsMmKXrHNNw=
 github.com/jcmturner/aescts/v2 v2.0.0/go.mod h1:AiaICIRyfYg35RUkr8yESTqvSy7csK90qZ5xfvvsoNs=
 github.com/jcmturner/dnsutils/v2 v2.0.0/go.mod h1:b0TnjGOvI/n42bZa+hmXL+kFJZsFT7G4t3HTlQ184QM=
 github.com/jcmturner/gofork v1.7.6/go.mod h1:1622LH6i/EZqLloHfE7IeZ0uEJwMSUyQ/nDd82IeqRo=
