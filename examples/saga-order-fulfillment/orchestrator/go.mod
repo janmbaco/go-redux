@@ -3,7 +3,7 @@ module github.com/janmbaco/go-redux-examples/saga-order-fulfillment/orchestrator
 go 1.26.0
 
 require (
-	github.com/janmbaco/go-infrastructure/v2 v2.3.0
+	github.com/janmbaco/go-infrastructure/v2 v2.3.2
 	github.com/janmbaco/go-redux/v2 v2.1.0
 )
 
